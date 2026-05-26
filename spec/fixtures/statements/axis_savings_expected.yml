@@ -1,0 +1,20 @@
+---
+parser_name: Axis Bank
+parser_version: '2026.05'
+opening_balance: 10000.00
+closing_balance: 8750.00
+balance_verified: true
+transaction_count: 4
+sample_transactions:
+  - date: '2026-04-01'
+    amount: 500.00
+    transaction_type: debit
+  - date: '2026-04-10'
+    amount: 1000.00
+    transaction_type: credit
+  - date: '2026-04-15'
+    amount: 1500.00
+    transaction_type: debit
+  - date: '2026-04-20'
+    amount: 250.00
+    transaction_type: debit

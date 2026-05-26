@@ -1,0 +1,14 @@
+State Bank of India
+Statement of Account
+A/C No: 30123456789 IFSC: SBIN0001234
+Period: 01/04/2026 to 30/04/2026
+
+Opening Balance        15,000.00
+
+Date         Description                       Debit         Credit         Balance
+01/04/2026   B/F                                                            15,000.00
+05/04/2026   UPI/SWIGGY                        250.00                       14,750.00
+10/04/2026   NEFT/REFUND                                     500.00         15,250.00
+20/04/2026   UPI/AMAZON                        750.00                       14,500.00
+
+Closing Balance        14,500.00

@@ -1,0 +1,16 @@
+HDFC BANK LIMITED
+www.hdfcbank.com
+Statement of Account
+A/C No: 50100123456789 IFSC: HDFC0001234
+Period: 01/04/2026 to 30/04/2026
+
+Opening Balance        25,000.00
+
+Date         Narration                          Withdrawal     Deposit       Balance
+01/04/2026   B/F                                                              25,000.00
+05/04/2026   UPI-AMAZON-PAYMENT                 500.00                        24,500.00
+10/04/2026   NEFT-SALARY-CR                                    50,000.00      74,500.00
+15/04/2026   ATM-CASH                           2,000.00                      72,500.00
+20/04/2026   UPI-SWIGGY                         250.00                        72,250.00
+
+Closing Balance        72,250.00

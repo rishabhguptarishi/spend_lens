@@ -1,0 +1,24 @@
+ICICI Bank Limited
+www.icicibank.com
+Customer Name: TEST USER
+Cust ID: 12345678
+IFSC: ICIC0006065 Branch: TEST BRANCH
+
+Statement of Transactions in Savings Account Number: 123456789012
+
+DATE        PARTICULARS                              DEPOSITS     WITHDRAWALS    BALANCE
+01/04/2026  B/F                                                                  50,000.00
+05/04/2026  UPI/AMAZON                                            1,500.00       48,500.00
+10/04/2026  NEFT/SALARY-EMPLOYER                     75,000.00                   1,23,500.00
+15/04/2026  Trf to PPF 000418336506                               2,000.00       1,21,500.00
+20/04/2026  UPI/SWIGGY                                            250.00         1,21,250.00
+
+TOTAL                                                75,000.00    3,750.00
+
+Statement of Transactions in Account Number: 000418336506
+
+DATE        PARTICULARS                              DEPOSITS     WITHDRAWALS    BALANCE
+01/04/2026  B/F                                                                  2,00,000.00
+15/04/2026  Contribution                             2,000.00                    2,02,000.00
+
+TOTAL                                                2,000.00     0.00

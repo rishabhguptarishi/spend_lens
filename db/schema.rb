@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_26_150001) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_27_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -219,6 +219,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_26_150001) do
     t.datetime "updated_at", null: false
     t.date "period_start"
     t.date "period_end"
+    t.string "parser_name"
+    t.string "parser_version"
+    t.jsonb "parse_quality", default: {}
     t.index ["bank_account_id", "month", "year"], name: "index_statements_on_bank_account_month_year"
     t.index ["bank_account_id", "period_start", "period_end"], name: "index_statements_on_bank_account_period"
     t.index ["bank_account_id"], name: "index_statements_on_bank_account_id"
