@@ -20,6 +20,10 @@ class StatementParserService
     @user = @bank_account.user
   end
 
+  # Statement statuses that mean "parse already finished, don't repeat".
+  # See G16 below for why we re-check after the lock.
+  PARSE_DONE_STATUSES = %w[parsed failed].freeze
+
   def call
     return unless @statement.file.attached?
 
@@ -39,7 +43,9 @@ class StatementParserService
     parse_result = run_bank_parser(text: text, format: format)
     regex_txs = parse_result.transactions
 
-    # Layer 3: AI extraction (parallel pathway)
+    # Layer 3: AI extraction (parallel pathway). Runs OUTSIDE the
+    # transaction below — it's a slow external API call we don't want
+    # holding a row lock for tens of seconds.
     ai_input = StatementParsing::AiPreprocessor.prepare(
       format == :csv ? file.force_encoding('UTF-8') : text,
       format: format
@@ -67,13 +73,32 @@ class StatementParserService
       closing_balance: parse_result.closing_balance,
     )
 
-    # Layer 6: Persist transactions + stamp parser metadata
-    persister = StatementParsing::Persister.new(@statement, user: @user, bank_account: @bank_account)
-    saved = persister.persist(merged)
-    stamp_parser_metadata(parse_result: parse_result, balance: balance, ai_used: trust_ai)
+    # Phase 6 §G16 + §G17 — atomic, mutually-exclusive persistence.
+    # ActiveRecord::Base.transaction(requires_new: true) forces a SAVEPOINT
+    # even when there's an outer transaction (test fixtures, callers
+    # that wrap us). Without requires_new, an exception inside the
+    # block would propagate but NOT roll back the inserts when nested
+    # in an outer transaction — quietly defeating the point of G17.
+    saved = 0
+    portfolio = null_portfolio_result
+    ActiveRecord::Base.transaction(requires_new: true) do
+      @statement.lock!  # row-level PG lock for G16 concurrency control
+      if PARSE_DONE_STATUSES.include?(@statement.status)
+        Rails.logger.info "Statement #{@statement.id} already #{@statement.status}; skipping re-parse"
+        next  # commit savepoint (no-op) and exit block; outer code continues
+      end
 
-    # Layer 7: Portfolio extraction — opt-in per fingerprint
-    portfolio = run_portfolio_extraction(text: text, parse_result: parse_result)
+      # Layer 6: Persist transactions + stamp parser metadata
+      persister = StatementParsing::Persister.new(@statement, user: @user, bank_account: @bank_account)
+      saved = persister.persist(merged)
+      stamp_parser_metadata(parse_result: parse_result, balance: balance, ai_used: trust_ai)
+
+      # Layer 7: Portfolio extraction — opt-in per fingerprint.
+      # Inside the savepoint so a portfolio-extraction failure rolls
+      # back the persisted transactions and leaves the statement in
+      # `pending` for retry, instead of half-persisted-half-not.
+      portfolio = run_portfolio_extraction(text: text, parse_result: parse_result)
+    end
 
     Rails.logger.info(
       "Hybrid parse complete: parser=#{parse_result.parser_name}@#{parse_result.parser_version} " \
@@ -85,7 +110,12 @@ class StatementParserService
     )
   rescue => e
     Rails.logger.error "Hybrid parser failed: #{e.class}: #{e.message}"
-    @statement.update!(status: 'failed')
+    # Use update_columns (not update!) — when a savepoint rolls back,
+    # the in-memory @statement.transactions collection still references
+    # the rolled-back rows. update! triggers autosave_associated_records
+    # which would re-INSERT them, defeating the rollback. update_columns
+    # bypasses callbacks AND association autosave, making the rescue safe.
+    @statement.update_columns(status: 'failed', updated_at: Time.current)
   end
 
   private

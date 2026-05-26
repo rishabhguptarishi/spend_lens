@@ -31,21 +31,44 @@ class StatementUploadsController < ApplicationController
 
     # Extract metadata from file (bank, account, period)
     content = read_file_content(file)
-    file.rewind # Reset for attach
+    # Phase 6 §G16 — content-addressable dedup. SHA-256 of the file
+    # bytes; lets us detect "same file uploaded again" deterministically.
+    file.rewind
+    raw_bytes = file.read
+    file_sha = Digest::SHA256.hexdigest(raw_bytes)
+    file.rewind
     metadata = StatementMetadataExtractorService.new(content, filename: file.original_filename).call
 
     bank_account = find_or_create_bank_account(metadata)
+
+    # Phase 6 §G16: if the user double-clicks Upload, two requests fire
+    # in parallel with identical files. The second one finds the first
+    # one's statement here and redirects without creating a duplicate
+    # row (which would trigger two parses and double-counted txns).
+    if (existing = bank_account.statements.find_by(file_sha: file_sha))
+      return redirect_to bank_account_statement_path(bank_account, existing),
+                         notice: 'This file was already uploaded — showing the existing statement.'
+    end
 
     statement = bank_account.statements.build(
       month: metadata[:month],
       year: metadata[:year],
       period_start: metadata[:period_start],
       period_end: metadata[:period_end],
+      file_sha: file_sha,
       status: 'pending_overlap_review'
     )
     statement.file.attach(file)
 
-    unless statement.save
+    begin
+      statement.save!
+    rescue ActiveRecord::RecordNotUnique
+      # Race: another request beat us to the unique index. Redirect to
+      # the winner instead of erroring.
+      winner = bank_account.statements.find_by(file_sha: file_sha)
+      return redirect_to bank_account_statement_path(bank_account, winner),
+                         notice: 'Upload already in progress — showing the existing statement.'
+    rescue ActiveRecord::RecordInvalid
       return redirect_to new_statement_upload_path, alert: statement.errors.full_messages.join(', ')
     end
 

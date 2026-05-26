@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_27_150002) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_27_160001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -264,6 +264,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_27_150002) do
     t.string "parser_name"
     t.string "parser_version"
     t.jsonb "parse_quality", default: {}
+    t.string "file_sha"
+    t.index ["bank_account_id", "file_sha"], name: "index_statements_on_bank_account_and_file_sha", unique: true, where: "(file_sha IS NOT NULL)"
     t.index ["bank_account_id", "month", "year"], name: "index_statements_on_bank_account_month_year"
     t.index ["bank_account_id", "period_start", "period_end"], name: "index_statements_on_bank_account_period"
     t.index ["bank_account_id"], name: "index_statements_on_bank_account_id"
@@ -280,10 +282,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_27_150002) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "is_recurring", default: false
+    t.bigint "user_id"
     t.index ["category_id"], name: "index_transactions_on_category_id"
     t.index ["date", "transaction_type"], name: "index_transactions_on_date_and_type"
     t.index ["statement_id", "date"], name: "index_transactions_on_statement_id_and_date"
     t.index ["statement_id"], name: "index_transactions_on_statement_id"
+    t.index ["user_id"], name: "index_transactions_on_user_id"
   end
 
   create_table "user_investment_detection_rules", force: :cascade do |t|
@@ -355,6 +359,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_27_150002) do
   add_foreign_key "statements", "bank_accounts"
   add_foreign_key "transactions", "categories"
   add_foreign_key "transactions", "statements"
+  add_foreign_key "transactions", "users"
   add_foreign_key "user_investment_detection_rules", "users"
   add_foreign_key "user_notification_preferences", "users"
 end
