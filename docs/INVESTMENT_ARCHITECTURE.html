@@ -239,7 +239,7 @@
 
 <aside>
   <div class="brand">SpendLens</div>
-  <div class="meta">Investment Architecture · v1 · 2026-05-26</div>
+  <div class="meta">Investment Architecture · v1.1 · 2026-05-26</div>
   <nav>
     <ol>
       <li><a href="#s1">1 · Context</a></li>
@@ -258,7 +258,11 @@
           <li><a href="#s3-fixed">3.2.4 Fixed income</a></li>
           <li><a href="#s3-ins">3.2.5 Insurance</a></li>
           <li><a href="#s3-alts">3.2.6 Crypto / alts</a></li>
-          <li><a href="#s3-intl">3.2.7 International</a></li>
+          <li><a href="#s3-listed-trusts">3.2.7a REITs &amp; InvITs</a></li>
+          <li><a href="#s3-fractional-re">3.2.7b Fractional RE</a></li>
+          <li><a href="#s3-p2p">3.2.7c P2P lending</a></li>
+          <li><a href="#s3-rsu">3.2.7d RSU / ESPP / ESOP</a></li>
+          <li><a href="#s3-intl">3.2.7e International</a></li>
           <li><a href="#s3-tax">3.3 Tax docs</a></li>
         </ol>
       </li>
@@ -307,10 +311,21 @@
 <p class="lede">SpendLens, the unification plan. How to make the app a true single source of truth for bank statements, investments, and tax docs &mdash; without the parser breaking on every new bank, and without the same money being counted twice across sources.</p>
 
 <div class="meta-row">
-  <span><b>Status</b> Draft v1</span>
+  <span><b>Status</b> Draft v1.1</span>
   <span><b>Date</b> 2026-05-26</span>
   <span><b>Owner</b> Rishabh</span>
-  <span><b>Scope</b> Phase 0 ready to ship</span>
+  <span><b>Scope</b> Phase 0 shipped; Phase 1 next</span>
+</div>
+
+<div class="callout ok">
+  <p><b>Decisions log &mdash; resolved since v1</b></p>
+  <ul style="margin: 6px 0 0 18px;">
+    <li><b>CSV-first UX:</b> <span class="check">&check;</span> confirmed. CSV/XLSX becomes the recommended upload path; PDF falls back.</li>
+    <li><b>Tier-2 bank rollout order:</b> <span class="check">&check;</span> confirmed. Kotak &rarr; IDFC First &rarr; Yes &rarr; Federal &rarr; BoB &rarr; IndusInd &rarr; PNB &rarr; Canara, one parser per PR.</li>
+    <li><b>Low-confidence parses:</b> <span class="check">&check;</span> confirmed. AI extractor (with per-field confidence) is the fallback; manual line entry is the last resort.</li>
+    <li><b>MFCentral integration:</b> <span class="cross">&cross;</span> not possible &mdash; SEBI/AMFI shut down MFCentral in September 2025. Account Aggregator (AA) is the regulatory successor but requires being a registered FIU (RBI/SEBI/IRDAI/PFRDA-regulated entity), Sahamati certification, and &#8377;5&ndash;25L+ first-year cost. Deferred. CAS PDF upload remains the canonical periodic path. Free public NAV APIs (mfapi.in / mfdata.in) added to Phase 4 for scheme enrichment.</li>
+    <li><b>Additional asset classes:</b> <span class="check">&check;</span> 5 added &mdash; <code>reit</code>, <code>invit</code>, <code>p2p</code>, <code>fractional_re</code>, <code>rsu</code> &mdash; see &sect;3.2.8 and &sect;5.2 for identity-key conventions.</li>
+  </ul>
 </div>
 
 <!-- ========================================================= -->
@@ -460,16 +475,21 @@
 <table>
   <thead><tr><th>Tier</th><th>Platforms</th><th>Source artifact</th></tr></thead>
   <tbody>
-    <tr><td><b>Industry-coordinated</b> (canonical)</td><td>MFCentral, MFU</td><td>Consolidated PAN-keyed statement, all AMCs</td></tr>
+    <tr><td><b>Industry-coordinated</b> (canonical)</td><td>MFU<br><span style="text-decoration: line-through; color: var(--muted);">MFCentral</span> &mdash; <b>shut down by SEBI/AMFI in Sept 2025</b></td><td>Consolidated PAN-keyed statement</td></tr>
     <tr><td><b>Depository CAS</b> (canonical for demat MF + equity)</td><td>CDSL CAS, NSDL CAS</td><td>PAN-keyed, all DPs</td></tr>
     <tr><td><b>RTA CAS</b> (canonical for non-demat MF)</td><td>CAMS CAS, KFintech CAS</td><td>PAN-keyed, partial AMC coverage each</td></tr>
     <tr><td>Broker-affiliated MF</td><td>Coin (Zerodha), Groww MF, Angel One MF, Paytm Money MF, Upstox MF</td><td>Platform-specific CSV/PDF</td></tr>
     <tr><td>Pure-play direct</td><td>Kuvera, ET Money, Scripbox, FundsIndia, INDmoney</td><td>Platform-specific</td></tr>
     <tr><td>AMC direct portals</td><td>HDFC MF, SBI MF, ICICI Pru MF, Axis MF, Kotak MF, Aditya Birla Sun Life, Nippon, UTI, DSP, Tata, Mirae, Franklin, Quant, Parag Parikh</td><td>Folio statement PDF per AMC</td></tr>
+    <tr><td><b>Public NAV / metadata APIs</b> (enrichment only, not user-specific)</td><td>mfapi.in, mfdata.in</td><td>Free REST APIs &mdash; daily NAV, scheme list, ~14,000 schemes. No auth, no licensing</td></tr>
   </tbody>
 </table>
 
 <p><b>Identity hierarchy for MFs:</b> ISIN (when demat) &gt; Folio number + AMC &gt; Scheme name (fuzzy).</p>
+
+<div class="callout warn">
+  <p><b>MFCentral status (updated):</b> SEBI and AMFI shut down the MFCentral public API in <b>September 2025</b> as part of the push toward Account Aggregator (AA) as the official data-sharing rail. We <b>do not</b> integrate with MFCentral. The AA framework (Finvu, OneMoney, CAMS AA, Anumati, Protean AA, &hellip;) <i>could</i> give us consented periodic refresh of MF folios, equity, NPS, FDs, and insurance &mdash; but consuming AA data requires being a regulated FIU (registered with RBI/SEBI/IRDAI/PFRDA), Sahamati certification, and &#8377;5&ndash;25L+ first-year cost with a 5&ndash;10 month integration runway. <b>Deferred</b> until SpendLens is either a regulated entity or partnered with one. CAS PDF upload (CAMS/KFintech) remains the canonical &ldquo;periodic refresh&rdquo; mechanism.</p>
+</div>
 
 <h3 id="s3-retire">3.2.3 Retirement instruments</h3>
 
@@ -522,7 +542,65 @@
   </tbody>
 </table>
 
-<h3 id="s3-intl">3.2.7 International</h3>
+<h3 id="s3-listed-trusts">3.2.7a Listed trusts (REITs &amp; InvITs)</h3>
+
+<table>
+  <thead><tr><th>Type</th><th>Listed examples</th><th>Identity key</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td><b>REIT</b> &mdash; Real Estate Investment Trust</td><td>Embassy Office Parks, Mindspace, Brookfield India, Nexus Select Trust, plus SM REITs (Property Share REIT, hBits SM REIT) listing 2025+</td><td>ISIN (visible in CDSL/NSDL CAS)</td><td><span class="cross">&cross;</span> new asset_class</td></tr>
+    <tr><td><b>InvIT</b> &mdash; Infrastructure Investment Trust</td><td>IRB InvIT, IndiGrid, PowerGrid InvIT, Bharat Highways InvIT</td><td>ISIN</td><td><span class="cross">&cross;</span> new asset_class</td></tr>
+  </tbody>
+</table>
+
+<p>Why these need their own asset class &mdash; they trade like stocks (have ISINs, settle in demat) but their quarterly/half-yearly distributions split into three tax buckets:</p>
+
+<table>
+  <thead><tr><th>Distribution component</th><th>Tax treatment</th><th>Activity sub-kind</th></tr></thead>
+  <tbody>
+    <tr><td><b>Dividend</b></td><td>Taxable at slab</td><td><code>dividend</code></td></tr>
+    <tr><td><b>Interest</b></td><td>Taxable at slab</td><td><code>interest</code></td></tr>
+    <tr><td><b>Capital repayment / return of capital</b></td><td>Reduces cost basis &mdash; not income</td><td><code>capital_return</code> (reduces position cost basis on calculation)</td></tr>
+  </tbody>
+</table>
+
+<p>If we treated these as ordinary stocks, the capital-gains calc on sale would be wrong (cost basis would be inflated; user pays excess LTCG). Distinct asset class lets the parser tag each component correctly and the CG service apply the right tax rule.</p>
+
+<h3 id="s3-fractional-re">3.2.7b Fractional commercial real estate</h3>
+
+<table>
+  <thead><tr><th>Platform</th><th>Source artifact</th><th>Identity key</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>Strata, PropertyShare, hBits, Assetmonk, AltDRX</td><td>Platform monthly distribution PDF/email</td><td><code>FRE:&lt;platform&gt;:&lt;property_id&gt;:&lt;investor_id&gt;</code></td><td><span class="cross">&cross;</span> new asset_class</td></tr>
+  </tbody>
+</table>
+
+<p>Distinct from REITs because: not exchange-listed, no ISIN, doesn&rsquo;t appear in CDSL/NSDL CAS, no Sahamati AA route. Only data source is the platform&rsquo;s monthly distribution statement. Returns are rental yield + capital gain on exit. SEBI&rsquo;s SM REIT framework (2024&ndash;25) is converting some of these into listed SM REITs &mdash; those graduate to <code>reit</code> once they list with an ISIN.</p>
+
+<h3 id="s3-p2p">3.2.7c P2P lending</h3>
+
+<table>
+  <thead><tr><th>Platform</th><th>Source artifact</th><th>Identity key</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>LendingKart, Faircent, IndiaP2P, LiquidLoans, 12% Club, Mobikwik Xtra (P2P), Cred Mint</td><td>Platform monthly statement + annual interest certificate</td><td><code>P2P:&lt;platform&gt;:&lt;investor_id&gt;</code></td><td><span class="cross">&cross;</span> new asset_class</td></tr>
+  </tbody>
+</table>
+
+<p>RBI-regulated NBFC-P2P category. User lends to a pool of borrowers; returns 10&ndash;15% interest; bears credit risk. Interest is slab-rate taxable income (not LTCG-eligible). Distinct asset class because today we&rsquo;d either miscategorize the platform debits as ordinary transfers or stuff them into <code>bond</code> &mdash; semantically wrong (no ISIN, no fixed maturity, no exchange).</p>
+
+<h3 id="s3-rsu">3.2.7d Employer equity (RSU / ESPP / ESOP)</h3>
+
+<table>
+  <thead><tr><th>Type</th><th>Source artifact</th><th>Identity key</th><th>Tax quirk</th></tr></thead>
+  <tbody>
+    <tr><td><b>RSU</b> (Restricted Stock Units)</td><td>Etrade / Computershare / Fidelity / Schwab (US employers); Indian companies typically use Equiniti or in-house portal</td><td><code>RSU:&lt;company&gt;:&lt;grant_id&gt;</code></td><td>Vesting = perquisite at FMV (added to salary, slab rate); sale = capital gain on (sale price &minus; FMV at vest)</td></tr>
+    <tr><td><b>ESPP</b> (Employee Stock Purchase Plan)</td><td>Same brokers</td><td><code>ESPP:&lt;company&gt;:&lt;purchase_period&gt;</code></td><td>Discount portion = perq; rest = capital gain. Holding-period rules differ from RSU.</td></tr>
+    <tr><td><b>ESOP</b> (Employee Stock Option Plan)</td><td>Company portal / Carta / etc.</td><td><code>ESOP:&lt;company&gt;:&lt;grant_id&gt;</code></td><td>Exercise spread = perq; subsequent sale = capital gain.</td></tr>
+  </tbody>
+</table>
+
+<p>Why this is critical: a huge fraction of our likely user base (Indian tech / finance employees) holds RSUs that dominate their net worth. Today these don&rsquo;t fit anywhere &mdash; not <code>stock</code> (different tax treatment, US-issuer often), not <code>us_stock</code> (missing the perquisite-on-vest accounting). New asset class lets us model vesting events, separate perq from cap-gain, and feed ITR-2 / Schedule FA correctly.</p>
+
+<h3 id="s3-intl">3.2.7e International</h3>
 
 <table>
   <thead><tr><th>Platform</th><th>Backing</th><th>Statement format</th></tr></thead>
@@ -711,6 +789,13 @@ LAYER 3 — ACTIVITIES (immutable transaction log, one row per real-world event)
   'crypto'       => -&gt;(m) { "CRYPTO:#{m[:exchange]}:#{m[:symbol]}" },
   'digital_gold' => -&gt;(m) { "GOLD:#{m[:provider]}:#{m[:account_no]}" },
   'us_stock'     => -&gt;(m) { m[:cusip] || m[:isin] || "US:#{m[:ticker]}" },
+  'reit'         => -&gt;(m) { m[:isin] },                                                      # listed REIT/SM REIT — always demat
+  'invit'        => -&gt;(m) { m[:isin] },                                                      # listed InvIT — always demat
+  'p2p'          => -&gt;(m) { "P2P:#{m[:platform]}:#{m[:investor_id]}" },                       # NBFC-P2P pool position
+  'fractional_re'=&gt; -&gt;(m) { "FRE:#{m[:platform]}:#{m[:property_id]}:#{m[:investor_id]}" },     # Strata/PropertyShare etc.
+  'rsu'          => -&gt;(m) { "RSU:#{m[:company]}:#{m[:grant_id]}" },                            # Vesting tracked per grant
+  'espp'         => -&gt;(m) { "ESPP:#{m[:company]}:#{m[:purchase_period]}" },                    # One position per purchase window
+  'esop'         => -&gt;(m) { "ESOP:#{m[:company]}:#{m[:grant_id]}" },                           # Pre-exercise option grant
   'real_estate'  => -&gt;(_) { "MANUAL:#{SecureRandom.uuid}" },
   'gold_physical'=&gt; -&gt;(_) { "MANUAL:#{SecureRandom.uuid}" },
 }
@@ -885,6 +970,10 @@ add_column :investment_transactions, :source_priority, :integer
 add_column :investment_transactions, :confirmed_by, :jsonb, default: []
 add_column :investment_transactions, :superseded_by_id, :bigint
 add_index  :investment_transactions, :superseded_by_id
+
+# Migration D: new asset_class enum values
+# Update InvestmentHolding::ASSET_CLASSES and InvestmentTransaction::ASSET_CLASSES
+# to include: 'reit', 'invit', 'p2p', 'fractional_re', 'rsu', 'espp', 'esop'
 </code></pre>
 
 <p>Backfill via a one-shot <code>BackfillIdentityKeysJob</code> that computes <code>identity_key</code> from <code>(asset_class, folio, symbol, name)</code> and <code>external_id</code> from source type + bank_txn id + other fields.</p>
@@ -916,23 +1005,29 @@ add_index  :investment_transactions, :superseded_by_id
   <li><code>/investments/suggestions</code> bucketed by match-confidence</li>
   <li><code>/net_worth</code> uses Positions</li>
   <li><code>/itr/capital_gains</code> unified STCG calc across pages</li>
-  <li>Add &ldquo;Prefer CSV over PDF&rdquo; prominent hint</li>
+  <li>Add <b>&ldquo;Prefer CSV over PDF&rdquo;</b> prominent hint on the statement upload page, with copy-paste-able per-bank instructions (HDFC / SBI / ICICI / Axis / Kotak first)</li>
+  <li>Integrate free public NAV API (<code>mfapi.in</code> or <code>mfdata.in</code>) for scheme enrichment &mdash; current NAV, scheme metadata, NAV history charts &mdash; no auth required, public-data only, no licensing risk</li>
+  <li>REIT/InvIT distribution UI: show the 3-way split (dividend / interest / capital return) explicitly so the user understands their cost basis is being reduced by capital-return components</li>
 </ul>
 
 <h3 id="s6-p5">Phase 5 &mdash; Missing sources</h3>
 
 <table>
-  <thead><tr><th>Source</th><th>Parser</th><th>Identity key</th></tr></thead>
+  <thead><tr><th>Source</th><th>Parser</th><th>Identity key</th><th>Unlocks</th></tr></thead>
   <tbody>
-    <tr><td>NSDL CAS</td><td><code>InvestmentImports::NsdlCasParser</code></td><td>ISIN</td></tr>
-    <tr><td>EPF UAN passbook</td><td><code>InvestmentImports::EpfPassbookParser</code></td><td>UAN</td></tr>
-    <tr><td>NPS Tier 1/2 (Protean)</td><td><code>InvestmentImports::NpsStatementParser</code></td><td>PRAN</td></tr>
-    <tr><td>RBI Retail Direct (SGB, G-Sec)</td><td><code>InvestmentImports::RbiRetailDirectParser</code></td><td>ISIN</td></tr>
-    <tr><td>AMC direct statements (HDFC MF, etc.)</td><td><code>InvestmentImports::AmcDirectParser</code></td><td>Folio</td></tr>
-    <tr><td>ULIP / Endowment statements</td><td><code>InvestmentImports::InsurancePolicyParser</code></td><td>Policy number</td></tr>
-    <tr><td>Crypto CSVs (WazirX/CoinDCX/CoinSwitch)</td><td>per-exchange</td><td>Account + tx hash</td></tr>
-    <tr><td>US stocks (INDmoney/Vested)</td><td><code>InvestmentImports::UsBrokerParser</code></td><td>CUSIP/ISIN</td></tr>
-    <tr><td>Corporate FD certificates</td><td><code>InvestmentImports::CorporateFdParser</code></td><td>Certificate number</td></tr>
+    <tr><td>NSDL CAS</td><td><code>InvestmentImports::NsdlCasParser</code></td><td>ISIN</td><td>NSDL DP users</td></tr>
+    <tr><td>EPF UAN passbook</td><td><code>InvestmentImports::EpfPassbookParser</code></td><td>UAN</td><td>EPF tracking</td></tr>
+    <tr><td>NPS Tier 1/2 (Protean)</td><td><code>InvestmentImports::NpsStatementParser</code></td><td>PRAN</td><td>NPS tracking</td></tr>
+    <tr><td>RBI Retail Direct (SGB, G-Sec)</td><td><code>InvestmentImports::RbiRetailDirectParser</code></td><td>ISIN</td><td>Sovereign bonds</td></tr>
+    <tr><td>AMC direct statements (HDFC MF, etc.)</td><td><code>InvestmentImports::AmcDirectParser</code></td><td>Folio</td><td>Direct-plan MF</td></tr>
+    <tr><td>ULIP / Endowment statements</td><td><code>InvestmentImports::InsurancePolicyParser</code></td><td>Policy number</td><td>Insurance</td></tr>
+    <tr><td>Crypto CSVs (WazirX/CoinDCX/CoinSwitch)</td><td>per-exchange</td><td>Account + tx hash</td><td>Crypto</td></tr>
+    <tr><td>US stocks (INDmoney/Vested)</td><td><code>InvestmentImports::UsBrokerParser</code></td><td>CUSIP/ISIN</td><td>US equity</td></tr>
+    <tr><td>Corporate FD certificates</td><td><code>InvestmentImports::CorporateFdParser</code></td><td>Certificate number</td><td>Bajaj Finance / Shriram / etc.</td></tr>
+    <tr><td><b>RSU / ESPP broker statements</b></td><td><code>InvestmentImports::EmployerEquityParser</code> (Etrade / Computershare / Fidelity / Schwab / Equiniti)</td><td><code>RSU:&lt;company&gt;:&lt;grant&gt;</code></td><td><b>Tech-employee equity</b></td></tr>
+    <tr><td><b>REIT/InvIT distribution statements</b></td><td>Mostly enriched from CDSL CAS + AMC-issued distribution PDF for the 3-way split</td><td>ISIN</td><td>Listed-trust tax accuracy</td></tr>
+    <tr><td><b>P2P platform statements</b></td><td><code>InvestmentImports::P2pStatementParser</code> (per-platform: LendingKart, Faircent, IndiaP2P, 12% Club, Mobikwik Xtra, Cred Mint)</td><td><code>P2P:&lt;platform&gt;:&lt;investor&gt;</code></td><td>P2P interest income for ITR</td></tr>
+    <tr><td><b>Fractional RE statements</b></td><td><code>InvestmentImports::FractionalRealEstateParser</code> (Strata / PropertyShare / hBits / Assetmonk / AltDRX)</td><td><code>FRE:&lt;platform&gt;:&lt;property&gt;</code></td><td>Off-exchange RE positions</td></tr>
   </tbody>
 </table>
 
@@ -964,15 +1059,29 @@ add_index  :investment_transactions, :superseded_by_id
 </ol>
 
 <!-- ========================================================= -->
-<h2 id="s8">8 &middot; Open questions / decisions needed</h2>
+<h2 id="s8">8 &middot; Open questions / decisions log</h2>
+
+<p>All v1 questions are now resolved. Outcome summary &mdash; full rationale in the decisions log at the top of the doc.</p>
+
+<table>
+  <thead><tr><th>#</th><th>Question</th><th>Resolution</th><th>Implication</th></tr></thead>
+  <tbody>
+    <tr><td>Q1</td><td>CSV-first UX?</td><td><span class="check">&check;</span> Yes</td><td>Phase 4 ships the &ldquo;Prefer CSV&rdquo; hint + per-bank instructions; PDF path stays as fallback</td></tr>
+    <tr><td>Q2</td><td>Tier-2 bank order?</td><td><span class="check">&check;</span> Confirmed as proposed</td><td>Kotak &rarr; IDFC First &rarr; Yes &rarr; Federal &rarr; BoB &rarr; IndusInd &rarr; PNB &rarr; Canara, one PR each</td></tr>
+    <tr><td>Q3</td><td>Manual entry strategy?</td><td><span class="check">&check;</span> AI extractor (confidence-scored) is the fallback; manual entry is last resort</td><td>Phase 3 ships the review queue UI with per-field confidence</td></tr>
+    <tr><td>Q4</td><td>MFCentral / AA integration?</td><td><span class="cross">&cross;</span> MFCentral shut down Sept 2025; AA deferred (regulatory + cost)</td><td>CAS PDF upload stays canonical; add free public NAV API in Phase 4 for scheme enrichment</td></tr>
+    <tr><td>Q5</td><td>Missing asset classes?</td><td><span class="check">&check;</span> 5 added: <code>reit</code>, <code>invit</code>, <code>p2p</code>, <code>fractional_re</code>, <code>rsu</code> (+ <code>espp</code>/<code>esop</code> variants)</td><td>Phase 1 schema includes the enum additions; parsers land in Phase 5</td></tr>
+    <tr><td>Q6</td><td>Phase 0 timing?</td><td><span class="check">&check;</span> Phase 0 shipped</td><td>515 specs green. Phase 1 (external_id + identity_key) is next.</td></tr>
+  </tbody>
+</table>
+
+<h3>Newly opened questions (v1.1)</h3>
 
 <ol>
-  <li><b>CSV-first UX:</b> Are you OK with making CSV the primary path and PDF the fallback? Most banks support CSV; the parser-breakage problem largely goes away with this UX choice.</li>
-  <li><b>Which Tier-2 banks first?</b> Suggested order based on retail share: Kotak &rarr; IDFC First &rarr; Yes &rarr; Federal &rarr; BoB &rarr; IndusInd &rarr; PNB &rarr; Canara.</li>
-  <li><b>Manual entry strategy:</b> When the user uploads a statement we can&rsquo;t parse confidently, do we offer &ldquo;manual entry by line&rdquo; or punt to AI extractor only? Recommendation: AI extractor with confidence scores, manual entry as last resort.</li>
-  <li><b>MFCentral / MFU integration:</b> These are industry-canonical. Worth a deeper integration (e.g. periodic refresh) vs one-off CAS upload?</li>
-  <li><b>Asset classes not yet listed:</b> Anything missing (P2P lending, REITs, InvITs, fractional real estate via Strata/PropertyShare)?</li>
-  <li><b>Phase 0&ndash;1 timing:</b> Phase 0 is essentially free (6 trivial fixes, 1 PR). Phase 1 is a real migration. Confirm we start with Phase 0 immediately.</li>
+  <li><b>Phase 1 sequencing:</b> Do we ship the 5 new asset-class enum additions as part of Phase 1 (schema migration) or hold them for Phase 5 (when their parsers land)? Recommendation: add the enum values in Phase 1 so the schema is stable, leave parsers for Phase 5.</li>
+  <li><b>REIT/InvIT distribution sub-kinds:</b> Should we model the dividend/interest/capital-return split as separate <code>InvestmentTransaction</code> kinds, or as a single <code>distribution</code> kind with a <code>metadata.components</code> hash? Recommendation: separate kinds &mdash; the CG service needs to subtract capital-return components from cost basis at sale time, which is cleaner with explicit kinds.</li>
+  <li><b>RSU vesting valuation:</b> For vest-time FMV (the perq amount), do we trust the broker statement&rsquo;s reported value, or fetch the closing NSE/NYSE price for the vest date? Recommendation: trust the statement (matches Form 16 / payslip).</li>
+  <li><b>AA framework partnership:</b> When the product grows, do we pursue regulated-entity status ourselves, partner with an existing FIU (Tata Capital, Cred, INDmoney, etc.), or stick with CAS-only? Defer this until we have 10K+ users.</li>
 </ol>
 
 <!-- ========================================================= -->
