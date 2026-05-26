@@ -1,0 +1,20 @@
+---
+parser_name: State Bank of India
+parser_version: '2026.05'
+opening_balance: 15000.00
+closing_balance: 14500.00
+balance_verified: true
+transaction_count: 3
+sample_transactions:
+  - date: '2026-04-05'
+    amount: 250.00
+    transaction_type: debit
+    description_contains: SWIGGY
+  - date: '2026-04-10'
+    amount: 500.00
+    transaction_type: credit
+    description_contains: REFUND
+  - date: '2026-04-20'
+    amount: 750.00
+    transaction_type: debit
+    description_contains: AMAZON

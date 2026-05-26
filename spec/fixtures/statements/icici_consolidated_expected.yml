@@ -1,0 +1,29 @@
+---
+parser_name: ICICI Bank
+parser_version: '2026.05'
+features:
+  - multi_account_sections
+  - portfolio_extraction
+# Only the spendable Savings section's transactions should surface;
+# the PPF section transactions are intentionally excluded (they're
+# investment activity, not bank txns). The contribution itself is
+# captured as "Trf to PPF" debit on the savings side, which the
+# bank-detect rules + PortfolioExtractor pick up downstream.
+transaction_count: 4
+sample_transactions:
+  - date: '2026-04-05'
+    amount: 1500.00
+    transaction_type: debit
+    description_contains: AMAZON
+  - date: '2026-04-10'
+    amount: 75000.00
+    transaction_type: credit
+    description_contains: SALARY
+  - date: '2026-04-15'
+    amount: 2000.00
+    transaction_type: debit
+    description_contains: PPF
+  - date: '2026-04-20'
+    amount: 250.00
+    transaction_type: debit
+    description_contains: SWIGGY

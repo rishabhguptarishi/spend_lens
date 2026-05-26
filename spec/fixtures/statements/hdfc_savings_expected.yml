@@ -1,0 +1,24 @@
+---
+parser_name: HDFC Bank
+parser_version: '2026.05'
+opening_balance: 25000.00
+closing_balance: 72250.00
+balance_verified: true
+transaction_count: 4
+sample_transactions:
+  - date: '2026-04-05'
+    amount: 500.00
+    transaction_type: debit
+    description_contains: AMAZON
+  - date: '2026-04-10'
+    amount: 50000.00
+    transaction_type: credit
+    description_contains: SALARY
+  - date: '2026-04-15'
+    amount: 2000.00
+    transaction_type: debit
+    description_contains: ATM
+  - date: '2026-04-20'
+    amount: 250.00
+    transaction_type: debit
+    description_contains: SWIGGY
