@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  </head>
+  <body>
+    <h1>Monthly Expense Digest</h1>
+    <p>Here's your spending summary for <%= (Date.current - 1.month).strftime('%B %Y') %>.</p>
+    <p><strong>Income:</strong> ₹<%= @income.to_f.round(2).to_s(:delimited) %></p>
+    <p><strong>Expenses:</strong> ₹<%= @expenses.to_f.round(2).to_s(:delimited) %></p>
+    <% if @top_categories.present? %>
+      <h2>Top categories</h2>
+      <ul>
+        <% @top_categories.each do |name, amount| %>
+          <li><%= name %>: ₹<%= amount.to_f.round(2).to_s(:delimited) %></li>
+        <% end %>
+      </ul>
+    <% end %>
+    <p><a href="<%= root_url %>">View in SpendLens</a></p>
+  </body>
+</html>

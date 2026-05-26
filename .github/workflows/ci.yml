@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  rspec:
+    name: RSpec
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: spend_lens_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/spend_lens_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      # Disable real network calls in case any spec forgets to stub a provider.
+      AI_PROVIDER: ollama
+      OLLAMA_URL: http://localhost:11434
+      # Devise / Rails session secret so the app boots in CI.
+      SECRET_KEY_BASE: ci-secret-key-base-for-rspec-runs-only-not-used-in-production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Install Postgres client + pdftotext (used by statement parser)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            postgresql-client \
+            poppler-utils
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -p 5432 -U postgres && break
+            sleep 1
+          done
+
+      - name: Prepare test database
+        run: bin/rails db:test:prepare
+
+      - name: Run RSpec
+        run: bundle exec rspec --format progress
+
+  brakeman:
+    name: Brakeman (static security audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Run Brakeman
+        run: bundle exec brakeman --no-pager --quiet --format plain
+
+  rubocop:
+    name: RuboCop (style)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Run RuboCop
+        run: bundle exec rubocop --parallel --no-color

@@ -1,0 +1,37 @@
+# Development image for docker compose (not for production — use Dockerfile for that).
+ARG RUBY_VERSION=3.3.1
+FROM docker.io/library/ruby:${RUBY_VERSION}-slim
+
+WORKDIR /rails
+
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+      build-essential \
+      curl \
+      git \
+      libpq-dev \
+      libvips \
+      libyaml-dev \
+      nodejs \
+      npm \
+      poppler-utils \
+      postgresql-client \
+      pkg-config && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+ENV BUNDLE_PATH=/usr/local/bundle \
+    RAILS_ENV=development \
+    NODE_ENV=development
+
+COPY Gemfile Gemfile.lock ./
+RUN bundle install
+
+COPY package.json package-lock.json* ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000 3036
+
+ENTRYPOINT ["/rails/bin/docker-dev-entrypoint"]
+CMD ["server"]

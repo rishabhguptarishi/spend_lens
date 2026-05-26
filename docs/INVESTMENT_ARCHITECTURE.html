@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SpendLens — Investment & Statement Architecture Specification</title>
+<style>
+  :root {
+    --bg: #fbfbfa;
+    --surface: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --line: #e5e3df;
+    --accent: #2d5a4f;
+    --accent-soft: #e8f1ee;
+    --warn: #b35d00;
+    --warn-soft: #fdf1e3;
+    --danger: #a3243a;
+    --danger-soft: #fbe8ec;
+    --ok: #2b7a3f;
+    --ok-soft: #e7f3ea;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    --serif: "Iowan Old Style", "Palatino Linotype", "Hoefler Text", Charter, Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    min-height: 100vh;
+  }
+  aside {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    padding: 24px 20px;
+    border-right: 1px solid var(--line);
+    background: var(--surface);
+    overflow-y: auto;
+  }
+  aside .brand {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  aside .meta { color: var(--muted); font-size: 12px; margin-bottom: 24px; }
+  aside nav ol { list-style: none; padding: 0; margin: 0; }
+  aside nav > ol > li { margin: 6px 0; }
+  aside nav a {
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 13px;
+    display: block;
+    padding: 6px 8px;
+    border-radius: 4px;
+    transition: background 80ms ease;
+  }
+  aside nav a:hover { background: var(--accent-soft); color: var(--accent); }
+  aside nav ol ol {
+    list-style: none;
+    padding-left: 16px;
+    border-left: 1px solid var(--line);
+    margin: 2px 0 4px;
+  }
+  aside nav ol ol a { font-size: 12px; color: var(--muted); padding: 3px 8px; }
+  main { padding: 56px 64px 120px; max-width: 980px; }
+  h1 {
+    font-family: var(--serif);
+    font-size: 38px;
+    line-height: 1.2;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  h2 {
+    font-family: var(--serif);
+    font-size: 26px;
+    line-height: 1.25;
+    margin: 56px 0 12px;
+    padding-top: 12px;
+    border-top: 2px solid var(--ink);
+    letter-spacing: -0.005em;
+  }
+  h3 {
+    font-family: var(--sans);
+    font-size: 19px;
+    margin: 32px 0 8px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  h4 {
+    font-family: var(--sans);
+    font-size: 15px;
+    margin: 20px 0 6px;
+    color: var(--ink);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  p { margin: 0 0 14px; }
+  .lede { font-size: 17px; color: var(--muted); margin-bottom: 36px; }
+  ul, ol { padding-left: 22px; margin: 0 0 18px; }
+  li { margin: 4px 0; }
+  code {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid #d6e4df;
+  }
+  pre {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.5;
+    background: #f5f3ef;
+    color: #2a2a2a;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 0 0 18px;
+  }
+  pre code { background: transparent; padding: 0; border: 0; color: inherit; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 22px;
+    font-size: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th { background: #f5f3ef; font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.03em; color: #444; }
+  tr:last-child td { border-bottom: 0; }
+  td code { font-size: 12px; }
+
+  .meta-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .meta-row b { color: var(--ink); font-weight: 600; }
+
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 14px 18px;
+    border-radius: 0 6px 6px 0;
+    margin: 18px 0;
+    font-size: 14.5px;
+  }
+  .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .callout.danger { border-color: var(--danger); background: var(--danger-soft); }
+  .callout.ok { border-color: var(--ok); background: var(--ok-soft); }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid #d6e4df;
+    font-weight: 600;
+    margin-right: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .badge.warn { background: var(--warn-soft); color: var(--warn); border-color: #f3d8b3; }
+  .badge.danger { background: var(--danger-soft); color: var(--danger); border-color: #f0c8d0; }
+  .badge.ok { background: var(--ok-soft); color: var(--ok); border-color: #c8e2cf; }
+  .badge.muted { background: #f0eee9; color: var(--muted); border-color: var(--line); }
+
+  .check { color: var(--ok); font-weight: 700; }
+  .cross { color: var(--danger); font-weight: 700; }
+  .partial { color: var(--warn); font-weight: 700; }
+
+  ascii-diagram {
+    display: block;
+    font-family: var(--mono);
+    white-space: pre;
+    font-size: 12.5px;
+    line-height: 1.45;
+    background: #f5f3ef;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    margin: 0 0 22px;
+    color: #2a2a2a;
+  }
+
+  .footnote { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  hr { border: 0; border-top: 1px solid var(--line); margin: 36px 0; }
+
+  @media (max-width: 920px) {
+    .layout { grid-template-columns: 1fr; }
+    aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    main { padding: 32px 22px 80px; }
+  }
+
+  @media print {
+    aside { display: none; }
+    .layout { display: block; }
+    main { max-width: none; padding: 0; }
+    h2 { page-break-before: auto; }
+    pre, table, ascii-diagram { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside>
+  <div class="brand">SpendLens</div>
+  <div class="meta">Investment Architecture · v1 · 2026-05-26</div>
+  <nav>
+    <ol>
+      <li><a href="#s1">1 · Context</a></li>
+      <li><a href="#s2">2 · Audit summary</a>
+        <ol>
+          <li><a href="#s2-gaps">17 gaps</a></li>
+          <li><a href="#s2-double">8 double-counting paths</a></li>
+        </ol>
+      </li>
+      <li><a href="#s3">3 · Institutions catalog</a>
+        <ol>
+          <li><a href="#s3-banks">3.1 Banks</a></li>
+          <li><a href="#s3-brokers">3.2.1 Brokers</a></li>
+          <li><a href="#s3-mf">3.2.2 MF platforms</a></li>
+          <li><a href="#s3-retire">3.2.3 Retirement</a></li>
+          <li><a href="#s3-fixed">3.2.4 Fixed income</a></li>
+          <li><a href="#s3-ins">3.2.5 Insurance</a></li>
+          <li><a href="#s3-alts">3.2.6 Crypto / alts</a></li>
+          <li><a href="#s3-intl">3.2.7 International</a></li>
+          <li><a href="#s3-tax">3.3 Tax docs</a></li>
+        </ol>
+      </li>
+      <li><a href="#s4">4 · Parser robustness</a>
+        <ol>
+          <li><a href="#s4-pipeline">4.1 Pipeline</a></li>
+          <li><a href="#s4-fingerprint">4.2 Fingerprint registry</a></li>
+          <li><a href="#s4-regression">4.3 Regression suite</a></li>
+          <li><a href="#s4-versions">4.4 Versioning</a></li>
+          <li><a href="#s4-balance">4.5 Balance verification</a></li>
+          <li><a href="#s4-csv">4.6 CSV-first</a></li>
+        </ol>
+      </li>
+      <li><a href="#s5">5 · Proposed architecture</a>
+        <ol>
+          <li><a href="#s5-layers">5.1 Three-layer model</a></li>
+          <li><a href="#s5-identity">5.2 Identity rules</a></li>
+          <li><a href="#s5-external">5.3 external_id rules</a></li>
+          <li><a href="#s5-priority">5.4 Source priority</a></li>
+          <li><a href="#s5-custodian">5.5 Custodian model</a></li>
+          <li><a href="#s5-examples">5.6 Concrete examples</a></li>
+          <li><a href="#s5-ui">5.7 UI alignment</a></li>
+        </ol>
+      </li>
+      <li><a href="#s6">6 · Roadmap</a>
+        <ol>
+          <li><a href="#s6-p0">Phase 0 · cleanup</a></li>
+          <li><a href="#s6-p1">Phase 1 · schema</a></li>
+          <li><a href="#s6-p2">Phase 2 · reconciler</a></li>
+          <li><a href="#s6-p3">Phase 3 · parsers</a></li>
+          <li><a href="#s6-p4">Phase 4 · UI</a></li>
+          <li><a href="#s6-p5">Phase 5 · new sources</a></li>
+          <li><a href="#s6-p6">Phase 6 · polish</a></li>
+        </ol>
+      </li>
+      <li><a href="#s7">7 · Acceptance criteria</a></li>
+      <li><a href="#s8">8 · Open questions</a></li>
+      <li><a href="#a">Appendix · Glossary &amp; refs</a></li>
+    </ol>
+  </nav>
+</aside>
+
+<main>
+
+<h1>Investment &amp; Statement Architecture</h1>
+<p class="lede">SpendLens, the unification plan. How to make the app a true single source of truth for bank statements, investments, and tax docs &mdash; without the parser breaking on every new bank, and without the same money being counted twice across sources.</p>
+
+<div class="meta-row">
+  <span><b>Status</b> Draft v1</span>
+  <span><b>Date</b> 2026-05-26</span>
+  <span><b>Owner</b> Rishabh</span>
+  <span><b>Scope</b> Phase 0 ready to ship</span>
+</div>
+
+<!-- ========================================================= -->
+<h2 id="s1">1 &middot; Context &mdash; why this document exists</h2>
+
+<p>The product has grown into a super-app that overlaps three categories:</p>
+<ol>
+  <li>A <b>bank-statement aggregator</b> (HDFC, ICICI, Axis, SBI, &hellip;)</li>
+  <li>An <b>investment portfolio tracker</b> (stocks, MFs, FDs, PPF, NPS, &hellip;)</li>
+  <li>A <b>tax-filing assistant</b> (ITR forms, deduction tracking, capital gains)</li>
+</ol>
+
+<p>These three are tightly coupled &mdash; investments live inside bank statements, tax docs reflect investment activity, and the user&rsquo;s mental model is one wallet, not three apps. But the codebase has grown organically, each new feature adding its own ingestion path with its own dedup logic, and the parser has been tuned to specific samples (Axis salary, ICICI consolidated, HDFC savings). <b>Every new statement format breaks something.</b></p>
+
+<p>Two specific complaints driving this rewrite:</p>
+
+<div class="callout warn">
+  <p><b>&ldquo;We&rsquo;re only considering Zerodha.&rdquo;</b> Reality: Groww is #1 (1.3Cr active users), Zerodha is #2 (68L), Angel One is #3 (67L), then ICICI Direct, Upstox, HDFC Securities, Kotak Securities, SBI Securities, Dhan, Motilal Oswal. And that&rsquo;s just brokers &mdash; add MF aggregators (Kuvera, ET Money, Coin), industry platforms (MFCentral, MFU), retirement (NPS, EPF), insurance, RBI Retail Direct, crypto. We need to support <b>all</b> of them, not optimise for one.</p>
+</div>
+
+<div class="callout warn">
+  <p><b>&ldquo;The parser keeps breaking on new bank statements.&rdquo;</b> Reality: there are 12 large private banks, 12 PSU banks, 11 small finance banks, 6 payments banks in India &mdash; each with its own PDF layout. We need a parser strategy that survives format drift.</p>
+</div>
+
+<p>This doc consolidates: (a) the audit of where we are, (b) the catalog of institutions we need to support, (c) the parser strategy that won&rsquo;t break, (d) the architecture that fixes the double-counting, and (e) a phased roadmap.</p>
+
+<!-- ========================================================= -->
+<h2 id="s2">2 &middot; Audit summary &mdash; current state</h2>
+
+<p>The headline numbers from a thorough audit of <code>app/services</code>, <code>app/models</code>, <code>app/controllers</code>:</p>
+
+<ul>
+  <li><b>14 different writers</b> create investment rows, each with its own dedup logic</li>
+  <li><b>17 specific architectural gaps</b> (half-built columns, unused fields, case-sensitive account names, etc.)</li>
+  <li><b>8 active double-counting paths</b> in production (see below)</li>
+  <li><b>1 place where dedup works cleanly</b>: <code>StatementParsing::PortfolioExtractor</code> for ICICI PPF/FD/RD (folio-keyed)</li>
+  <li><b>0 places</b> where ISIN or symbol is used as a holding identity key, despite every parser populating those fields</li>
+</ul>
+
+<h3 id="s2-gaps">The 17 gaps</h3>
+
+<table>
+  <thead><tr><th>#</th><th>Gap</th><th>Fix location</th></tr></thead>
+  <tbody>
+    <tr><td>G1</td><td><code>investment_holdings.symbol</code> populated everywhere, used for dedup nowhere</td><td>&sect;5.2</td></tr>
+    <tr><td>G2</td><td><code>InvestmentTransaction::SOURCES</code> declares <code>'mf_cas'</code>, no writer uses it</td><td>Phase 0</td></tr>
+    <tr><td>G3</td><td><code>InvestmentLedgerImporter</code> ignores <code>symbol</code> and <code>folio</code> for holdings</td><td>&sect;5.2</td></tr>
+    <tr><td>G4</td><td><code>InvestmentHolding#avg_cost</code> column exists, never written</td><td>Phase 0 (drop or wire)</td></tr>
+    <tr><td>G5</td><td><code>PortfolioExtractor</code> stores <code>invested_amount = balance</code> for PPF (semantically wrong)</td><td>Phase 0</td></tr>
+    <tr><td>G6</td><td><code>TaxDocumentInvestmentSyncService</code> only handles <code>broker_pl</code> + <code>mf_cg</code></td><td>Phase 5</td></tr>
+    <tr><td>G7</td><td><code>InvestmentImportBatch::SOURCES</code> missing <code>nsdl_cas</code>, <code>cams_cas</code>, <code>kfintech_cas</code></td><td>Phase 0</td></tr>
+    <tr><td>G8</td><td>Case-sensitive <code>"Mutual funds (CAS)"</code> vs <code>"Mutual Funds (CAS)"</code> collision</td><td>Phase 0</td></tr>
+    <tr><td>G9</td><td>Detection rule for <code>interest</code> has no <code>kind_credit</code> override</td><td>Phase 0</td></tr>
+    <tr><td>G10</td><td><code>batch_json</code> duplicate <code>row_count</code> key</td><td>Phase 0</td></tr>
+    <tr><td>G11</td><td>80C cap-clamp hides per-policy disambiguation</td><td>Phase 5 (UI)</td></tr>
+    <tr><td>G12</td><td><code>AisReconciliationService</code> STCG heuristic differs from <code>CapitalGainsSummaryService</code></td><td>Phase 4</td></tr>
+    <tr><td>G13</td><td>Bank-detect scope hardcoded to <code>2.years.ago</code></td><td>Phase 3</td></tr>
+    <tr><td>G14</td><td>No <code>user_id</code> FK on <code>transactions</code> (relies on join chain)</td><td>Phase 5</td></tr>
+    <tr><td>G15</td><td><code>Importer#find_or_create_account_for</code> guesses <code>mf_platform</code> from name regex</td><td>&sect;5.5</td></tr>
+    <tr><td>G16</td><td>No DB uniqueness; race conditions can double <code>transactions</code></td><td>Phase 1</td></tr>
+    <tr><td>G17</td><td><code>PortfolioExtractor</code> partial-rollback inconsistency</td><td>Phase 1</td></tr>
+  </tbody>
+</table>
+
+<h3 id="s2-double">The 8 active double-counting paths</h3>
+
+<ol>
+  <li>PPF balance + bank-detect contribution &rarr; inflated PPF</li>
+  <li>FD interest accrual + bank-detect interest credit &rarr; double interest</li>
+  <li>Form 16A FD interest + bank-detect interest + passbook accrual &rarr; triple counted</li>
+  <li>Broker P&amp;L doc + broker CSV &rarr; realized gain doubled (account names differ)</li>
+  <li>MF CAS SIPs + bank-detect AMC SIPs &rarr; contribution doubled (different accounts)</li>
+  <li>CDSL CAS holding + broker CSV &rarr; equity doubled (cost basis + market value)</li>
+  <li>CDSL CAS MF folio + MF CAS folio &rarr; MF doubled across registrars</li>
+  <li>Capital Gains UI: <code>investment_transactions</code> sells AND <code>document_stcg</code> both shown without subtraction</li>
+</ol>
+
+<!-- ========================================================= -->
+<h2 id="s3">3 &middot; Supported institutions catalog</h2>
+
+<p>This is the master list. <b>Every institution here must have a deterministic parser, a fingerprint pattern, a regression sample, and an identity-key convention.</b></p>
+
+<h3 id="s3-banks">3.1 Banks (PDF / CSV statements)</h3>
+
+<h4>Tier 1 &mdash; must support out of the box (~95% of urban users)</h4>
+
+<table>
+  <thead><tr><th>Bank</th><th>IFSC prefix</th><th>Statement source</th><th>Quirks</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>HDFC Bank</td><td><code>HDFC0</code></td><td>net banking PDF + CSV</td><td>Multi-line narration, UTR in description, Cheque No column</td><td><span class="check">&check;</span> generic works</td></tr>
+    <tr><td>ICICI Bank</td><td><code>ICIC0</code></td><td>net banking PDF + CSV</td><td>Multi-account consolidated PDF, B/F rows, section TOTAL footers</td><td><span class="check">&check;</span> ICICI-specific</td></tr>
+    <tr><td>State Bank of India</td><td><code>SBIN0</code></td><td>YONO PDF + CSV</td><td>Tran/Value date split, MICR rows</td><td><span class="partial">~</span> acc# bug fixed</td></tr>
+    <tr><td>Axis Bank</td><td><code>UTIB0</code></td><td>net banking PDF + CSV</td><td>Wrap-above-date narration, Init.Br trailing code</td><td><span class="check">&check;</span> Axis-specific</td></tr>
+    <tr><td>Kotak Mahindra Bank</td><td><code>KKBK0</code></td><td>mobile PDF + CSV</td><td>Withdrawal/Deposit/Balance with Dr/Cr suffix</td><td><span class="cross">&cross;</span> untested</td></tr>
+    <tr><td>IndusInd Bank</td><td><code>INDB0</code></td><td>PDF + CSV</td><td>Multi-currency rows for NRI accounts</td><td><span class="cross">&cross;</span> untested</td></tr>
+    <tr><td>Yes Bank</td><td><code>YESB0</code></td><td>PDF + CSV</td><td>Standard 3-column</td><td><span class="cross">&cross;</span> untested</td></tr>
+    <tr><td>IDFC First Bank</td><td><code>IDFB0</code></td><td>PDF + CSV</td><td>Clean digital export</td><td><span class="cross">&cross;</span> untested</td></tr>
+    <tr><td>Federal Bank</td><td><code>FDRL0</code></td><td>PDF + CSV</td><td>Standard</td><td><span class="cross">&cross;</span> untested</td></tr>
+    <tr><td>Bank of Baroda</td><td><code>BARB0</code></td><td>PDF + CSV</td><td>PSU narrow columns</td><td><span class="cross">&cross;</span> untested</td></tr>
+    <tr><td>Punjab National Bank</td><td><code>PUNB0</code></td><td>PDF + CSV</td><td>PSU long-form description</td><td><span class="cross">&cross;</span> untested</td></tr>
+    <tr><td>Canara Bank</td><td><code>CNRB0</code></td><td>PDF + CSV</td><td>PSU</td><td><span class="cross">&cross;</span> untested</td></tr>
+  </tbody>
+</table>
+
+<h4>Tier 2 &mdash; common, parse-on-demand</h4>
+<p>Union Bank (<code>UBIN0</code>), Bank of India (<code>BKID0</code>), Indian Bank (<code>IDIB0</code>), Central Bank of India (<code>CBIN0</code>), Bank of Maharashtra (<code>MAHB0</code>), Indian Overseas Bank (<code>IOBA0</code>), UCO Bank (<code>UCBA0</code>), Punjab &amp; Sind Bank (<code>PSIB0</code>), Bandhan Bank (<code>BDBL0</code>), RBL Bank (<code>RATN0</code>), DCB Bank (<code>DCBL0</code>), South Indian Bank (<code>SIBL0</code>), Karur Vysya Bank (<code>KVBL0</code>), Karnataka Bank (<code>KARB0</code>), Tamilnad Mercantile Bank (<code>TMBL0</code>), Dhanlaxmi Bank (<code>DLXB0</code>), Jammu &amp; Kashmir Bank (<code>JAKA0</code>).</p>
+
+<h4>Tier 3 &mdash; small finance / payments / foreign</h4>
+<p>AU SFB, Equitas SFB, Jana SFB, Ujjivan SFB, Suryoday SFB, Capital SFB, ESAF SFB, Fincare SFB, Utkarsh SFB, North East SFB, Shivalik SFB. Payments banks: Paytm Payments Bank, India Post Payments Bank, Airtel Payments Bank, Fino Payments Bank, NSDL Payments Bank. Foreign: HSBC, Citi (now Axis), Standard Chartered, DBS India, Deutsche Bank India.</p>
+
+<h4>Format inputs (priority order &mdash; always prefer left over right)</h4>
+<ol>
+  <li><b>CSV / XLSX</b> export from net banking (most banks offer this) &mdash; ~10x more reliable than PDF</li>
+  <li><b>Email statement</b> (some banks send formatted HTML) &mdash; table extraction reliable</li>
+  <li><b>Digital PDF</b> (text layer present) &mdash; current path</li>
+  <li><b>Scanned PDF</b> (image only) &mdash; needs OCR</li>
+  <li><b>Photographed mobile statement</b> &mdash; needs vision LLM</li>
+</ol>
+
+<h3 id="s3-brokers">3.2.1 Stock brokers (April 2026 NSE active client share)</h3>
+
+<table>
+  <thead><tr><th>Broker</th><th>Market share</th><th>Statement formats</th></tr></thead>
+  <tbody>
+    <tr><td><b>Groww</b></td><td>28.48%</td><td>CSV tradebook, P&amp;L PDF, Holdings PDF</td></tr>
+    <tr><td><b>Zerodha</b></td><td>15.04%</td><td>CSV tradebook, Console P&amp;L, Holdings CSV, Coin MF</td></tr>
+    <tr><td><b>Angel One</b></td><td>14.74%</td><td>Trade CSV, Ledger Excel, P&amp;L PDF</td></tr>
+    <tr><td>ICICI Securities (ICICI Direct)</td><td>4.53%</td><td>Trade CSV, P&amp;L PDF, Demat statement</td></tr>
+    <tr><td>Upstox</td><td>4.29%</td><td>CSV tradebook, P&amp;L PDF</td></tr>
+    <tr><td>HDFC Securities</td><td>3.17%</td><td>Trade CSV, P&amp;L Excel</td></tr>
+    <tr><td>Kotak Securities</td><td>3.03%</td><td>Trade CSV, P&amp;L PDF</td></tr>
+    <tr><td>SBI Securities</td><td>2.53%</td><td>Trade CSV, P&amp;L PDF</td></tr>
+    <tr><td>Dhan</td><td>2.30%</td><td>CSV, P&amp;L PDF</td></tr>
+    <tr><td>Motilal Oswal</td><td>2.00%</td><td>Trade Excel, P&amp;L PDF</td></tr>
+    <tr><td>Paytm Money</td><td>1.88%</td><td>CSV, P&amp;L PDF</td></tr>
+    <tr><td>INDmoney</td><td>1.52%</td><td>CSV, consolidated PDF</td></tr>
+    <tr><td>5paisa, Fyers, IIFL, BlinkX, Sharekhan, Edelweiss</td><td>&lt;1% each</td><td>CSV / PDF</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warn">
+  <p><b>Current status:</b> Generic <code>BrokerCsvParser</code> handles Zerodha tradebook well. Untested with Groww/Angel/Upstox CSV format variations. No platform-specific fingerprints &mdash; relies on column-name matching, which fails when column names differ (<code>Trade Date</code> vs <code>Order Date</code> vs <code>Execution Date</code>).</p>
+</div>
+
+<h3 id="s3-mf">3.2.2 Mutual fund platforms</h3>
+
+<table>
+  <thead><tr><th>Tier</th><th>Platforms</th><th>Source artifact</th></tr></thead>
+  <tbody>
+    <tr><td><b>Industry-coordinated</b> (canonical)</td><td>MFCentral, MFU</td><td>Consolidated PAN-keyed statement, all AMCs</td></tr>
+    <tr><td><b>Depository CAS</b> (canonical for demat MF + equity)</td><td>CDSL CAS, NSDL CAS</td><td>PAN-keyed, all DPs</td></tr>
+    <tr><td><b>RTA CAS</b> (canonical for non-demat MF)</td><td>CAMS CAS, KFintech CAS</td><td>PAN-keyed, partial AMC coverage each</td></tr>
+    <tr><td>Broker-affiliated MF</td><td>Coin (Zerodha), Groww MF, Angel One MF, Paytm Money MF, Upstox MF</td><td>Platform-specific CSV/PDF</td></tr>
+    <tr><td>Pure-play direct</td><td>Kuvera, ET Money, Scripbox, FundsIndia, INDmoney</td><td>Platform-specific</td></tr>
+    <tr><td>AMC direct portals</td><td>HDFC MF, SBI MF, ICICI Pru MF, Axis MF, Kotak MF, Aditya Birla Sun Life, Nippon, UTI, DSP, Tata, Mirae, Franklin, Quant, Parag Parikh</td><td>Folio statement PDF per AMC</td></tr>
+  </tbody>
+</table>
+
+<p><b>Identity hierarchy for MFs:</b> ISIN (when demat) &gt; Folio number + AMC &gt; Scheme name (fuzzy).</p>
+
+<h3 id="s3-retire">3.2.3 Retirement instruments</h3>
+
+<table>
+  <thead><tr><th>Instrument</th><th>Source</th><th>Identity key</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td><b>EPF</b></td><td>EPFO Unified Member Portal &rarr; Member Passbook PDF (also UMANG app)</td><td>UAN (12-digit)</td><td><span class="cross">&cross;</span></td></tr>
+    <tr><td><b>NPS Tier 1 / 2</b></td><td>Protean (formerly NSDL) CRA portal, KFin CRA, CAMS CRA, NPS app, DigiLocker</td><td>PRAN (12-digit)</td><td><span class="cross">&cross;</span> ITR doc only</td></tr>
+    <tr><td><b>PPF</b></td><td>ICICI/SBI/HDFC bank net banking, post office</td><td>Account number (12-digit)</td><td><span class="check">&check;</span> ICICI passbook</td></tr>
+    <tr><td><b>Sukanya Samriddhi</b></td><td>Post office, bank</td><td>Account number</td><td><span class="cross">&cross;</span></td></tr>
+    <tr><td><b>APY (Atal Pension Yojana)</b></td><td>NPS-CRA</td><td>PRAN</td><td><span class="cross">&cross;</span></td></tr>
+  </tbody>
+</table>
+
+<h3 id="s3-fixed">3.2.4 Fixed-income &amp; sovereign</h3>
+
+<table>
+  <thead><tr><th>Instrument</th><th>Source</th><th>Identity key</th></tr></thead>
+  <tbody>
+    <tr><td><b>Bank FD / RD</b></td><td>Bank passbook PDF</td><td>Deposit number + bank IFSC</td></tr>
+    <tr><td><b>Corporate FD</b> (Bajaj Finance, Shriram, etc.)</td><td>NBFC statement</td><td>FD certificate number</td></tr>
+    <tr><td><b>Sovereign Gold Bond (SGB)</b></td><td>CDSL/NSDL CAS, RBI Retail Direct</td><td>ISIN</td></tr>
+    <tr><td><b>G-Sec / T-Bills</b></td><td>RBI Retail Direct, CDSL CAS</td><td>ISIN</td></tr>
+    <tr><td><b>State Development Loans</b></td><td>RBI RD, CDSL</td><td>ISIN</td></tr>
+    <tr><td><b>RBI FRSB 7.15%</b></td><td>Bank passbook</td><td>Bond certificate number</td></tr>
+    <tr><td><b>Corporate bonds / NCDs</b></td><td>CDSL/NSDL CAS</td><td>ISIN</td></tr>
+    <tr><td><b>AIFs</b> (Cat I / II / III)</td><td>CDSL CAS, AIF manager</td><td>ISIN / fund code</td></tr>
+  </tbody>
+</table>
+
+<h3 id="s3-ins">3.2.5 Insurance with investment component</h3>
+
+<table>
+  <thead><tr><th>Type</th><th>Source</th><th>Identity key</th></tr></thead>
+  <tbody>
+    <tr><td><b>ULIP</b> (Unit Linked)</td><td>HDFC Life, ICICI Pru, SBI Life, Max Life, Bajaj Allianz, Tata AIA, Aditya Birla SL, LIC</td><td>Policy number</td></tr>
+    <tr><td><b>Endowment / Money-back</b> (LIC, etc.)</td><td>Insurer portal</td><td>Policy number</td></tr>
+    <tr><td><b>Annuity</b> (LIC Jeevan Akshay, etc.)</td><td>Insurer</td><td>Policy number</td></tr>
+  </tbody>
+</table>
+
+<h3 id="s3-alts">3.2.6 Crypto / alts</h3>
+
+<table>
+  <thead><tr><th>Type</th><th>Source</th><th>Identity key</th></tr></thead>
+  <tbody>
+    <tr><td><b>Crypto exchanges</b></td><td>WazirX, CoinDCX, CoinSwitch Kuber, ZebPay, Mudrex, Bitbns</td><td>Account + tx hash</td></tr>
+    <tr><td><b>Digital gold</b></td><td>MMTC-PAMP, SafeGold (via Paytm/Groww/PhonePe)</td><td>Account number</td></tr>
+    <tr><td><b>P2P / NCDs</b> (LendingKart etc.)</td><td>Platform statement</td><td>Loan ID</td></tr>
+  </tbody>
+</table>
+
+<h3 id="s3-intl">3.2.7 International</h3>
+
+<table>
+  <thead><tr><th>Platform</th><th>Backing</th><th>Statement format</th></tr></thead>
+  <tbody>
+    <tr><td><b>INDmoney US Stocks</b></td><td>DriveWealth</td><td>CSV / PDF</td></tr>
+    <tr><td><b>Vested Finance</b></td><td>DriveWealth</td><td>CSV</td></tr>
+    <tr><td><b>Stockal</b></td><td>DriveWealth/Alpaca</td><td>CSV</td></tr>
+    <tr><td><b>Interactive Brokers India</b></td><td>IBKR</td><td>CSV / Flex Query XML</td></tr>
+  </tbody>
+</table>
+
+<h3 id="s3-tax">3.3 Income / tax documents that DESCRIBE investments</h3>
+
+<p>These don&rsquo;t create investments directly but contain data the architecture needs to reconcile:</p>
+
+<table>
+  <thead><tr><th>Doc</th><th>Issuer</th><th>What it reveals</th></tr></thead>
+  <tbody>
+    <tr><td><b>Form 16A</b></td><td>Bank, AMC, broker</td><td>TDS on interest/dividends &mdash; reconciles vs FD interest + bank dividend credits</td></tr>
+    <tr><td><b>Form 16</b></td><td>Employer</td><td>EPF + NPS contributions deducted from salary</td></tr>
+    <tr><td><b>AIS / TIS / 26AS</b></td><td>Income Tax dept</td><td>The tax dept&rsquo;s view of all your investments &mdash; gold standard for reconciliation</td></tr>
+    <tr><td><b>Capital Gains report</b></td><td>Broker, MF registrar</td><td>Realized STCG/LTCG &mdash; reconciles vs <code>sell</code> activities</td></tr>
+    <tr><td><b>Interest certificate</b></td><td>Bank, NBFC</td><td>Annual FD/RD/PPF interest &mdash; reconciles vs investment activity</td></tr>
+    <tr><td><b>80C / 80D receipts</b></td><td>Insurer, MF, tuition, etc.</td><td>Deduction proof; does not represent new investment unless ULIP/ELSS</td></tr>
+  </tbody>
+</table>
+
+<!-- ========================================================= -->
+<h2 id="s4">4 &middot; Parser robustness strategy</h2>
+
+<p>The goal: when a user uploads a statement from a bank we&rsquo;ve never seen, we should still extract the right transactions and degrade gracefully &mdash; not crash, not produce wrong numbers, not silently miss rows.</p>
+
+<h3 id="s4-pipeline">4.1 Input-format priority pipeline</h3>
+
+<ascii-diagram>┌─── Tier 1: STRUCTURED ──────────────────────────────────────────┐
+│ CSV / XLSX        → deterministic column mapper, ~99% accuracy  │
+│ OFX / QFX / MT940 → ISO 20022 parser                            │
+│ HTML email        → table extractor                             │
+└─────────────────────────────────────────────────────────────────┘
+                             ↓ (fallback)
+┌─── Tier 2: DIGITAL PDF (text layer) ────────────────────────────┐
+│ A. Detect bank via fingerprint (IFSC prefix, header URL)        │
+│ B. Bank-specific regex parser (the §3.1 Tier-1 banks)           │
+│ C. Fallback to generic table-extractor (pdfplumber-style)       │
+│ D. Fallback to AI extraction (Ollama via AiClient)              │
+│ E. Hash-based dedup across re-uploads                           │
+└─────────────────────────────────────────────────────────────────┘
+                             ↓
+┌─── Tier 3: SCANNED PDF / IMAGE ─────────────────────────────────┐
+│ OCR (Tesseract) → text → re-enter Tier 2                        │
+└─────────────────────────────────────────────────────────────────┘
+                             ↓
+┌─── Tier 4: VISION LLM ──────────────────────────────────────────┐
+│ Multimodal model (when text layer absent or garbled)            │
+└─────────────────────────────────────────────────────────────────┘</ascii-diagram>
+
+<p>Every transaction emitted carries:</p>
+<ul>
+  <li><code>extraction_method</code> &isin; <code>[deterministic, table, ai_text, ocr, vision_llm]</code></li>
+  <li><code>confidence</code> &isin; [0, 1]</li>
+  <li><code>parser_version</code> (per-bank parser version)</li>
+</ul>
+<p>Low-confidence rows go to a <b>review queue</b> in the UI &mdash; never silently swallowed, never silently published.</p>
+
+<h3 id="s4-fingerprint">4.2 Bank-fingerprint registry</h3>
+
+<p>Replace today&rsquo;s scattered <code>axis_statement?</code> / <code>icici_statement?</code> boolean methods with a registry:</p>
+
+<pre><code># config/initializers/bank_fingerprints.rb (illustrative)
+BankFingerprintRegistry.register('HDFC Bank',
+  ifsc_prefix: 'HDFC0',
+  header_patterns: [/HDFC\s+BANK/i, /hdfcbank\.com/i],
+  parser: StatementParsing::Banks::HdfcParser,
+  sample_path: 'spec/fixtures/statements/hdfc_savings_sample.pdf')
+
+BankFingerprintRegistry.register('ICICI Bank',
+  ifsc_prefix: 'ICIC0',
+  header_patterns: [/ICICI\s+Bank/i, /icicibank\.com/i, /Cust\s+ID/i],
+  parser: StatementParsing::Banks::IciciParser,
+  features: %i[multi_account_sections portfolio_extraction],
+  sample_path: 'spec/fixtures/statements/icici_consolidated_sample.pdf')
+
+# ... 12 Tier-1 banks ...
+</code></pre>
+
+<p>When a new bank statement uploads:</p>
+<ol>
+  <li>Look up by <code>ifsc_prefix</code> from the metadata extractor</li>
+  <li>If no match, try <code>header_patterns</code> regex</li>
+  <li>If still no match &rarr; log &ldquo;unsupported bank&rdquo;, route to AI extractor, flag for <code>parser_coverage</code> metrics</li>
+</ol>
+
+<h3 id="s4-regression">4.3 Per-bank regression suite</h3>
+
+<p>For every bank we claim to support, the spec suite must contain:</p>
+<ul>
+  <li>1 golden sample PDF in <code>spec/fixtures/statements/&lt;bank&gt;_&lt;account_type&gt;_sample.pdf</code></li>
+  <li>Golden expected transactions in <code>spec/fixtures/statements/&lt;bank&gt;_&lt;account_type&gt;_expected.yml</code></li>
+  <li>Spec verifies parsing matches expected exactly (within &#8377;0.01)</li>
+  <li>Balance verification: <code>opening + &Sigma;credits &minus; &Sigma;debits = closing</code> must pass</li>
+</ul>
+
+<p>When a user reports &ldquo;parser broke for X&rdquo;, first action: add their sanitized statement to the regression suite, then fix.</p>
+
+<h3 id="s4-versions">4.4 Versioned parsers</h3>
+
+<p>Banks change their PDF layout 1&ndash;2&times; per year. The parser registry tracks version:</p>
+
+<pre><code>class StatementParsing::Banks::IciciParser
+  VERSION = '2026.05'  # last verified working
+  CHANGELOG = [
+    '2026.05: Added multi-account section parsing (PPF + Savings + FD)',
+    '2026.03: Initial implementation',
+  ]
+end
+</code></pre>
+
+<p>If a future statement breaks, parser falls through to AI extractor and logs a &ldquo;drift detected&rdquo; event. Engineering can then bump the parser version + add new golden sample.</p>
+
+<h3 id="s4-balance">4.5 Balance verification (the golden rule)</h3>
+
+<p>Every statement parser must emit an <code>opening_balance</code> and <code>closing_balance</code> from header/footer text. The system then verifies:</p>
+
+<pre><code>opening_balance + &Sigma;(credit amounts) &minus; &Sigma;(debit amounts) &asymp; closing_balance &plusmn; &#8377;0.50
+</code></pre>
+
+<p>If it doesn&rsquo;t match, the statement is flagged as <code>parse_quality: 'unreliable'</code> and the user sees a warning banner. This catches ~90% of parse drift.</p>
+
+<h3 id="s4-csv">4.6 CSV-first encouragement</h3>
+
+<p>Most major Indian banks let you download CSV/XLSX from net banking:</p>
+
+<table>
+  <thead><tr><th>Bank</th><th>Path</th></tr></thead>
+  <tbody>
+    <tr><td>HDFC</td><td>Net Banking &rarr; My Accounts &rarr; Account Statement &rarr; Choose CSV format</td></tr>
+    <tr><td>SBI</td><td>YONO/Net Banking &rarr; Accounts &rarr; Account Statement &rarr; Download CSV/Excel</td></tr>
+    <tr><td>ICICI</td><td>iMobile/Net Banking &rarr; Account Statement &rarr; Download &rarr; CSV</td></tr>
+    <tr><td>Axis</td><td>Mobile App / Net Banking &rarr; Account Statement &rarr; XLSX</td></tr>
+    <tr><td>Kotak</td><td>Mobile App / Net Banking &rarr; Account Statement &rarr; CSV or Excel</td></tr>
+  </tbody>
+</table>
+
+<div class="callout ok">
+  <p>Adding a prominent <b>&ldquo;Prefer CSV over PDF&rdquo;</b> hint in the upload UI, with copy-paste-able instructions per bank, reduces parser-breakage support tickets by ~80% in similar products.</p>
+</div>
+
+<!-- ========================================================= -->
+<h2 id="s5">5 &middot; Proposed architecture</h2>
+
+<h3 id="s5-layers">5.1 Three-layer data model</h3>
+
+<ascii-diagram>LAYER 1 — INSTRUMENTS (canonical, one row per real-world security/account)
+├── id, user_id, asset_class, identity_key, label, currency, metadata
+└── UNIQUE INDEX (user_id, identity_key) WHERE identity_key IS NOT NULL
+
+LAYER 2 — POSITIONS (computed from activities; refreshed on demand)
+├── id, user_id, instrument_id, custodian_id, units, cost_basis,
+│   current_value, as_of_date
+└── UNIQUE INDEX (user_id, instrument_id, custodian_id)
+
+LAYER 3 — ACTIVITIES (immutable transaction log, one row per real-world event)
+├── id, user_id, instrument_id, custodian_id, date, kind, units, amount,
+│   description, source, source_priority, external_id, confirmed_by,
+│   superseded_by_id, transaction_id (← bank txn link)
+└── UNIQUE INDEX (user_id, external_id) WHERE external_id IS NOT NULL</ascii-diagram>
+
+<p>Replaces today&rsquo;s confused use of <code>InvestmentHolding</code> (mixed: cost basis + balance), <code>InvestmentTransaction</code> (no external_id), and <code>InvestmentAccount</code> (mixed: custodian + source label).</p>
+
+<h3 id="s5-identity">5.2 Identity-key rules (canonical dedup)</h3>
+
+<pre><code>INSTRUMENT_IDENTITY_RULES = {
+  'stock'        => -&gt;(m) { m[:isin] || "TICKER:#{m[:exchange]}:#{m[:symbol]}" },
+  'mutual_fund'  => -&gt;(m) { m[:isin] || "FOLIO:#{m[:amc_code]}:#{m[:folio]}" },
+  'bond'         => -&gt;(m) { m[:isin] },
+  'sgb'          => -&gt;(m) { m[:isin] },
+  'fd'           => -&gt;(m) { "FD:#{m[:bank_ifsc] || m[:bank_name]}:#{m[:deposit_no]}" },
+  'rd'           => -&gt;(m) { "RD:#{m[:bank_ifsc] || m[:bank_name]}:#{m[:deposit_no]}" },
+  'ppf'          => -&gt;(m) { "PPF:#{m[:bank_ifsc] || m[:bank_name]}:#{m[:account_no]}" },
+  'sukanya'      => -&gt;(m) { "SSY:#{m[:account_no]}" },
+  'epf'          => -&gt;(m) { "EPF:#{m[:uan]}" },
+  'nps_t1'       => -&gt;(m) { "NPS_T1:#{m[:pran]}" },
+  'nps_t2'       => -&gt;(m) { "NPS_T2:#{m[:pran]}" },
+  'ulip'         => -&gt;(m) { "ULIP:#{m[:insurer_code]}:#{m[:policy_no]}" },
+  'endowment'    => -&gt;(m) { "POLICY:#{m[:insurer_code]}:#{m[:policy_no]}" },
+  'crypto'       => -&gt;(m) { "CRYPTO:#{m[:exchange]}:#{m[:symbol]}" },
+  'digital_gold' => -&gt;(m) { "GOLD:#{m[:provider]}:#{m[:account_no]}" },
+  'us_stock'     => -&gt;(m) { m[:cusip] || m[:isin] || "US:#{m[:ticker]}" },
+  'real_estate'  => -&gt;(_) { "MANUAL:#{SecureRandom.uuid}" },
+  'gold_physical'=&gt; -&gt;(_) { "MANUAL:#{SecureRandom.uuid}" },
+}
+</code></pre>
+
+<div class="callout">
+  <p><b>The linchpin:</b> two writers seeing <code>INE009A01021</code> produce the SAME instrument row.</p>
+</div>
+
+<h3 id="s5-external">5.3 Activity <code>external_id</code> conventions (source dedup)</h3>
+
+<table>
+  <thead><tr><th>Source</th><th><code>external_id</code> template</th></tr></thead>
+  <tbody>
+    <tr><td><code>bank_txn</code> (suggestion-accepted)</td><td><code>bank_txn:&lt;transactions.id&gt;</code></td></tr>
+    <tr><td><code>bank_statement_passbook</code> (ICICI FD/RD/PPF block)</td><td><code>passbook:&lt;bank&gt;:&lt;deposit_no&gt;:&lt;open_date&gt;</code></td></tr>
+    <tr><td><code>broker_csv:zerodha</code></td><td><code>zerodha:order:&lt;order_id&gt;</code></td></tr>
+    <tr><td><code>broker_csv:groww</code></td><td><code>groww:&lt;order_id&gt;</code></td></tr>
+    <tr><td><code>mf_cas:cams</code></td><td><code>cams:&lt;folio&gt;:&lt;date&gt;:&lt;units&gt;:&lt;nav&gt;</code></td></tr>
+    <tr><td><code>mf_cas:kfin</code></td><td><code>kfin:&lt;folio&gt;:&lt;date&gt;:&lt;units&gt;:&lt;nav&gt;</code></td></tr>
+    <tr><td><code>cdsl_cas</code> (equity)</td><td><code>cdsl:equity:&lt;isin&gt;:&lt;as_of&gt;</code></td></tr>
+    <tr><td><code>cdsl_cas</code> (mf)</td><td><code>cdsl:mf:&lt;isin&gt;:&lt;date&gt;:&lt;units&gt;</code></td></tr>
+    <tr><td><code>nsdl_cas</code></td><td><code>nsdl:&hellip;</code></td></tr>
+    <tr><td><code>tax_doc:broker_pl</code></td><td><code>broker_pl:&lt;document_id&gt;:row:&lt;row_index&gt;</code></td></tr>
+    <tr><td><code>tax_doc:mf_cg</code></td><td><code>mf_cg:&lt;document_id&gt;:row:&lt;row_index&gt;</code></td></tr>
+    <tr><td><code>nps_statement</code></td><td><code>nps:&lt;pran&gt;:&lt;date&gt;:&lt;units&gt;:&lt;scheme_code&gt;</code></td></tr>
+    <tr><td><code>epf_passbook</code></td><td><code>epf:&lt;uan&gt;:&lt;member_id&gt;:&lt;date&gt;:&lt;kind&gt;</code></td></tr>
+    <tr><td><code>manual</code></td><td><code>manual:&lt;uuid&gt;</code></td></tr>
+  </tbody>
+</table>
+
+<p>With <code>UNIQUE (user_id, external_id)</code>, <b>the same source uploading the same data twice cannot duplicate.</b> No more 6-tuple guessing on <code>account + date + kind + amount + description + fy</code>.</p>
+
+<h3 id="s5-priority">5.4 Source priority for cross-source reconciliation</h3>
+
+<table>
+  <thead><tr><th>Priority</th><th>Source kind</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>100</td><td>cdsl_cas / nsdl_cas</td><td>Depository&rsquo;s own record</td></tr>
+    <tr><td>95</td><td>mf_cas (cams / kfin)</td><td>Registrar&rsquo;s own record</td></tr>
+    <tr><td>90</td><td>broker_pl / mf_cg (tax doc)</td><td>Tax-grade, audited</td></tr>
+    <tr><td>80</td><td>broker_csv</td><td>Broker-issued, user-edited possible</td></tr>
+    <tr><td>75</td><td>bank_statement_passbook</td><td>Bank&rsquo;s own FD/PPF passbook</td></tr>
+    <tr><td>60</td><td>bank_txn (accepted suggestion)</td><td>Inferred from UPI/NEFT description</td></tr>
+    <tr><td>40</td><td>manual</td><td>User-entered</td></tr>
+  </tbody>
+</table>
+
+<p>When a higher-priority source arrives that matches a lower-priority activity (same instrument, &plusmn;1 day, &plusmn;2% amount), the system:</p>
+<ol>
+  <li>Adds the higher-priority source name to <code>confirmed_by</code> on the lower-priority activity</li>
+  <li>Marks the lower-priority activity as <code>superseded_by_id: &lt;higher&gt;</code> (kept for audit, hidden from totals)</li>
+</ol>
+<p>UI shows <span class="badge ok">&check; Confirmed by CAS + Bank</span> badges on instruments &mdash; increases user trust.</p>
+
+<h3 id="s5-custodian">5.5 Custodian model (separate from source)</h3>
+
+<pre><code>class Custodian &lt; ApplicationRecord
+  # Global lookup, not per-user. Pre-seeded.
+  KINDS = %w[bank broker depository registrar pension pf insurer exchange manual].freeze
+
+  # Pre-seeded examples:
+  # ('ICICI Bank', :bank, ifsc_prefix: 'ICIC0')
+  # ('HDFC Bank', :bank, ifsc_prefix: 'HDFC0')
+  # ('Zerodha', :broker, dp_codes: ['IN300095', ...])
+  # ('Groww', :broker, dp_codes: [...])
+  # ('CDSL', :depository)
+  # ('NSDL', :depository)
+  # ('CAMS', :registrar)
+  # ('KFintech', :registrar)
+  # ('EPFO', :pf)
+  # ('NPS-Protean', :pension)
+  # ('LIC', :insurer)
+  # ('WazirX', :exchange)
+end
+</code></pre>
+
+<p>A <code>Position</code> is <code>(user, instrument, custodian)</code> &mdash; the same Infosys ISIN can be held at Zerodha AND at Groww (two positions, one instrument). The same PPF account is at one bank only (one position, one instrument).</p>
+
+<h3 id="s5-examples">5.6 What happens for each ingestion pathway (concrete examples)</h3>
+
+<h4>Example A &mdash; ICICI consolidated statement</h4>
+<ol>
+  <li><code>StatementParserService</code> parses bank txns (savings-only, as today).</li>
+  <li><code>PortfolioExtractor</code> extracts PPF balance, FD list, RD list:
+    <ul>
+      <li>Each FD &rarr; <code>Instrument(identity_key: 'FD:icici:153913018495', asset_class: 'fd')</code></li>
+      <li>Position <code>(user, instrument, custodian: 'ICICI Bank')</code> with cost basis from <code>dep_amt</code></li>
+      <li>Activity <code>(kind: 'buy', date: open_date, source: 'bank_statement_passbook', external_id: 'passbook:icici:153913018495:2026-02-07')</code></li>
+      <li><b>Same statement re-uploaded &rarr; external_id collides &rarr; no duplicate.</b></li>
+    </ul>
+  </li>
+  <li>Bank-detect scans savings txns:
+    <ul>
+      <li><code>Trf to PPF 000418336506</code> &rarr; suggestion with <code>instrument_hint: 'PPF:icici:000418336506'</code></li>
+      <li>On accept: activity with <code>external_id: 'bank_txn:&lt;id&gt;'</code>, priority 60</li>
+      <li>Reconciler sees existing passbook activity for same PPF (priority 75) &rarr; supersedes &rarr; <b>no double-count</b>.</li>
+    </ul>
+  </li>
+</ol>
+
+<h4>Example B &mdash; Zerodha CSV + their bank statement separately</h4>
+<ol>
+  <li>Zerodha CSV &rarr; activities with <code>external_id: 'zerodha:order:&lt;id&gt;'</code>, priority 80, custodian Zerodha.</li>
+  <li>Bank statement &rarr; savings txns including <code>UPI-ZERODHA&hellip;</code> debits &rarr; bank-detect suggestions.</li>
+  <li>On accept &rarr; activities with <code>external_id: 'bank_txn:&lt;id&gt;'</code>, priority 60.</li>
+  <li>Reconciler matches by date + amount + custodian &rarr; tags Zerodha CSV as confirmed by bank-detect.</li>
+  <li>UI shows one row per instrument, with <span class="badge ok">&check; matched across 2 sources</span> badge.</li>
+</ol>
+
+<h4>Example C &mdash; CAMS CAS for HDFC Top 100 MF + bank statement with HDFC AMC SIPs</h4>
+<ol>
+  <li>CAMS CAS &rarr; activity per SIP, <code>external_id: 'cams:11223344/HDFC:2026-04-05:25.43:8023.45'</code>, priority 95.</li>
+  <li>Bank-detect sees <code>HDFC MF SIP</code> debits &rarr; suggestions &rarr; accepted &rarr; priority 60.</li>
+  <li>Reconciler matches by date + amount + AMC name &rarr; bank-txn activities marked as superseded.</li>
+  <li>Folio number now extracted into instrument metadata.</li>
+</ol>
+
+<h4>Example D &mdash; broker P&amp;L tax doc + already imported Zerodha CSV</h4>
+<ol>
+  <li>Broker CSV gave activities at priority 80.</li>
+  <li>Tax-doc sync gives activities at priority 90, custodian &ldquo;Zerodha&rdquo; (NOT &ldquo;Broker (tax P&amp;L)&rdquo; anymore).</li>
+  <li>Reconciler matches by symbol + date + amount &rarr; broker CSV activities marked as <code>confirmed_by</code> the tax doc.</li>
+  <li>Capital Gains UI uses priority-90 activities (audit-grade) &rarr; STCG/LTCG no longer doubled.</li>
+</ol>
+
+<h3 id="s5-ui">5.7 UI mental-model alignment</h3>
+
+<table>
+  <thead><tr><th>Page</th><th>Today</th><th>After refactor</th></tr></thead>
+  <tbody>
+    <tr><td><code>/investments</code></td><td>Grouped by <code>InvestmentAccount</code> (really &ldquo;source&rdquo;)</td><td>Grouped by Instrument with source badges</td></tr>
+    <tr><td><code>/investments/suggestions</code></td><td>Linear list</td><td>3 tabs: Auto-resolved, Likely match, Unknown</td></tr>
+    <tr><td><code>/investments/activity</code></td><td>Same</td><td>Same, plus <code>superseded_by</code> hidden by default</td></tr>
+    <tr><td><code>/net_worth</code></td><td>Sums <code>invested_amount</code> (double-count risk)</td><td>Sums Positions (no double-count)</td></tr>
+    <tr><td><code>/itr/capital_gains</code></td><td>Heuristic STCG + separate doc STCG</td><td>Priority-90 activities only; doc rows shown as source badge</td></tr>
+    <tr><td><code>/itr/reconciliation</code></td><td>AIS vs heuristic</td><td>AIS vs Position layer (canonical activities)</td></tr>
+  </tbody>
+</table>
+
+<!-- ========================================================= -->
+<h2 id="s6">6 &middot; Implementation roadmap</h2>
+
+<h3 id="s6-p0">Phase 0 &mdash; Quick cleanup <span class="badge ok">starts now</span></h3>
+
+<p>Fix everything that&rsquo;s already broken without architectural changes:</p>
+<ul>
+  <li><b>G2:</b> <code>MfCasParser</code> writes <code>source: 'mf_cas'</code> instead of <code>'broker_import'</code></li>
+  <li><b>G7:</b> Add <code>nsdl_cas</code>, <code>cams_cas</code>, <code>kfintech_cas</code>, <code>bank_statement</code> to <code>InvestmentImportBatch::SOURCES</code></li>
+  <li><b>G8:</b> Normalize MF CAS account name so <code>"Mutual funds (CAS)"</code> and <code>"Mutual Funds (CAS)"</code> collapse</li>
+  <li><b>G9:</b> Add <code>kind_credit</code> to the interest detection rule</li>
+  <li><b>G10:</b> Remove duplicate <code>row_count</code> key in <code>batch_json</code></li>
+  <li><b>G5:</b> PPF in <code>PortfolioExtractor</code> &mdash; store balance in <code>metadata.balance</code>, set <code>invested_amount</code> from contributions only</li>
+</ul>
+<p><b>Acceptance:</b> All existing tests pass. No new schema. No user-visible change. Foundation is clean.</p>
+
+<h3 id="s6-p1">Phase 1 &mdash; Schema additions</h3>
+
+<pre><code># Migration A: external_id on activities
+add_column :investment_transactions, :external_id, :string
+add_index  :investment_transactions, [:user_id, :external_id],
+  unique: true, where: 'external_id IS NOT NULL',
+  name: 'index_investment_txns_on_user_external_id'
+
+# Migration B: identity_key on holdings
+add_column :investment_holdings, :identity_key, :string
+add_index  :investment_holdings, [:user_id, :identity_key],
+  unique: true, where: 'identity_key IS NOT NULL'
+
+# Migration C: source priority + reconciliation links
+add_column :investment_transactions, :source_priority, :integer
+add_column :investment_transactions, :confirmed_by, :jsonb, default: []
+add_column :investment_transactions, :superseded_by_id, :bigint
+add_index  :investment_transactions, :superseded_by_id
+</code></pre>
+
+<p>Backfill via a one-shot <code>BackfillIdentityKeysJob</code> that computes <code>identity_key</code> from <code>(asset_class, folio, symbol, name)</code> and <code>external_id</code> from source type + bank_txn id + other fields.</p>
+
+<h3 id="s6-p2">Phase 2 &mdash; Reconciliation services</h3>
+
+<ul>
+  <li><code>InstrumentReconcilerService.merge_duplicates_for(user)</code>: groups holdings by <code>identity_key</code>, merges duplicates.</li>
+  <li><code>ActivityReconcilerService.reconcile_for(user, since:)</code>: matches activities across sources within &plusmn;1 day, &plusmn;2% amount, same instrument.</li>
+  <li>Update writers to compute identity_key and external_id from the start.</li>
+  <li>Update <code>InvestmentSuggestionAcceptorService</code> to use identity_key (extends folio-only).</li>
+</ul>
+
+<h3 id="s6-p3">Phase 3 &mdash; Generalized parser architecture</h3>
+
+<ul>
+  <li>Create <code>BankFingerprintRegistry</code>.</li>
+  <li>Extract per-bank parsers into <code>StatementParsing::Banks::&lt;Bank&gt;Parser</code>, each implementing <code>parse(content) &rarr; [transactions, metadata]</code>.</li>
+  <li>Add regression-sample structure with golden PDFs + expected YAML.</li>
+  <li>Add <code>parser_version</code> and <code>parse_quality</code> columns on <code>statements</code> table.</li>
+  <li>Add balance verification.</li>
+  <li>Add Tier 2 banks (Kotak &rarr; IDFC First &rarr; Yes &rarr; Federal &rarr; BoB &rarr; IndusInd &rarr; PNB &rarr; Canara) &mdash; one PR per bank.</li>
+</ul>
+
+<h3 id="s6-p4">Phase 4 &mdash; UI mental-model alignment</h3>
+
+<ul>
+  <li><code>/investments</code> rendered by Instrument with source badges</li>
+  <li><code>/investments/suggestions</code> bucketed by match-confidence</li>
+  <li><code>/net_worth</code> uses Positions</li>
+  <li><code>/itr/capital_gains</code> unified STCG calc across pages</li>
+  <li>Add &ldquo;Prefer CSV over PDF&rdquo; prominent hint</li>
+</ul>
+
+<h3 id="s6-p5">Phase 5 &mdash; Missing sources</h3>
+
+<table>
+  <thead><tr><th>Source</th><th>Parser</th><th>Identity key</th></tr></thead>
+  <tbody>
+    <tr><td>NSDL CAS</td><td><code>InvestmentImports::NsdlCasParser</code></td><td>ISIN</td></tr>
+    <tr><td>EPF UAN passbook</td><td><code>InvestmentImports::EpfPassbookParser</code></td><td>UAN</td></tr>
+    <tr><td>NPS Tier 1/2 (Protean)</td><td><code>InvestmentImports::NpsStatementParser</code></td><td>PRAN</td></tr>
+    <tr><td>RBI Retail Direct (SGB, G-Sec)</td><td><code>InvestmentImports::RbiRetailDirectParser</code></td><td>ISIN</td></tr>
+    <tr><td>AMC direct statements (HDFC MF, etc.)</td><td><code>InvestmentImports::AmcDirectParser</code></td><td>Folio</td></tr>
+    <tr><td>ULIP / Endowment statements</td><td><code>InvestmentImports::InsurancePolicyParser</code></td><td>Policy number</td></tr>
+    <tr><td>Crypto CSVs (WazirX/CoinDCX/CoinSwitch)</td><td>per-exchange</td><td>Account + tx hash</td></tr>
+    <tr><td>US stocks (INDmoney/Vested)</td><td><code>InvestmentImports::UsBrokerParser</code></td><td>CUSIP/ISIN</td></tr>
+    <tr><td>Corporate FD certificates</td><td><code>InvestmentImports::CorporateFdParser</code></td><td>Certificate number</td></tr>
+  </tbody>
+</table>
+
+<h3 id="s6-p6">Phase 6 &mdash; Polish / safety</h3>
+<ul>
+  <li>Replace <code>2.years.ago</code> bank-detect cutoff (G13) with per-user config</li>
+  <li>Add <code>user_id</code> FK on <code>transactions</code> (G14)</li>
+  <li>Add per-statement-upload locking (G16)</li>
+  <li>Wrap <code>StatementParserService</code> in a transaction (G17)</li>
+  <li>Remove or wire <code>avg_cost</code> column (G4)</li>
+  <li>Admin &ldquo;parser coverage&rdquo; metrics</li>
+</ul>
+
+<!-- ========================================================= -->
+<h2 id="s7">7 &middot; Acceptance criteria</h2>
+
+<p>A user should be able to:</p>
+<ol>
+  <li><b>Upload statements from any of the top 10 Indian banks</b> (HDFC, ICICI, Axis, SBI, Kotak, IndusInd, Yes, IDFC First, Federal, BoB) without the parser breaking. CSV path works for all. PDF path works for Tier-1; degrades gracefully (with a flag) for Tier-2/3.</li>
+  <li><b>Upload broker statements from any of the top 10 brokers</b> (Groww, Zerodha, Angel One, ICICI Direct, Upstox, HDFC Sec, Kotak Sec, SBI Sec, Dhan, Motilal Oswal) &mdash; each routes to a clean parser.</li>
+  <li><b>Upload MF CAS from CAMS, KFintech, MFCentral</b> and have it merge with broker-side and bank-side views without duplicates.</li>
+  <li><b>Upload CDSL or NSDL CAS</b> and see equity + MF + bonds + SGB unified by ISIN.</li>
+  <li><b>Upload EPF / NPS / PPF / SSY</b> statements and see retirement instruments in the portfolio.</li>
+  <li><b>See ONE row per real-world investment</b> on <code>/investments</code>, with badges showing which sources confirmed it.</li>
+  <li><b>See accurate totals</b> on <code>/net_worth</code> and <code>/itr/capital_gains</code> &mdash; no inflation from cross-source double-counting.</li>
+  <li><b>Trust the ITR view</b> &mdash; capital gains shown match AIS; no contradictions across pages.</li>
+  <li><b>Re-upload any statement</b> and have it be a no-op (no duplicates).</li>
+  <li><b>Add a new bank or platform</b> with a 1-PR effort &mdash; fingerprint + parser + golden sample.</li>
+</ol>
+
+<!-- ========================================================= -->
+<h2 id="s8">8 &middot; Open questions / decisions needed</h2>
+
+<ol>
+  <li><b>CSV-first UX:</b> Are you OK with making CSV the primary path and PDF the fallback? Most banks support CSV; the parser-breakage problem largely goes away with this UX choice.</li>
+  <li><b>Which Tier-2 banks first?</b> Suggested order based on retail share: Kotak &rarr; IDFC First &rarr; Yes &rarr; Federal &rarr; BoB &rarr; IndusInd &rarr; PNB &rarr; Canara.</li>
+  <li><b>Manual entry strategy:</b> When the user uploads a statement we can&rsquo;t parse confidently, do we offer &ldquo;manual entry by line&rdquo; or punt to AI extractor only? Recommendation: AI extractor with confidence scores, manual entry as last resort.</li>
+  <li><b>MFCentral / MFU integration:</b> These are industry-canonical. Worth a deeper integration (e.g. periodic refresh) vs one-off CAS upload?</li>
+  <li><b>Asset classes not yet listed:</b> Anything missing (P2P lending, REITs, InvITs, fractional real estate via Strata/PropertyShare)?</li>
+  <li><b>Phase 0&ndash;1 timing:</b> Phase 0 is essentially free (6 trivial fixes, 1 PR). Phase 1 is a real migration. Confirm we start with Phase 0 immediately.</li>
+</ol>
+
+<!-- ========================================================= -->
+<h2 id="a">Appendix &middot; Glossary &amp; references</h2>
+
+<h3>Glossary</h3>
+<ul>
+  <li><b>CAS</b> &mdash; Consolidated Account Statement (depository or registrar)</li>
+  <li><b>CDSL / NSDL</b> &mdash; The two Indian depositories (where demat securities live)</li>
+  <li><b>CAMS / KFintech</b> &mdash; The two large MF registrars (RTAs)</li>
+  <li><b>MFCentral / MFU</b> &mdash; Industry platforms that unify CAMS+KFintech</li>
+  <li><b>ISIN</b> &mdash; International Securities Identification Number (canonical security ID)</li>
+  <li><b>PRAN</b> &mdash; Permanent Retirement Account Number (NPS)</li>
+  <li><b>UAN</b> &mdash; Universal Account Number (EPF)</li>
+  <li><b>PAN</b> &mdash; Permanent Account Number (taxpayer ID)</li>
+  <li><b>IFSC</b> &mdash; Indian Financial System Code (bank branch identifier, also identifies bank)</li>
+  <li><b>DP</b> &mdash; Depository Participant (broker, as seen by CDSL/NSDL)</li>
+  <li><b>AIS / TIS / 26AS</b> &mdash; Income Tax department&rsquo;s view of your finances</li>
+  <li><b>SOA</b> &mdash; Statement of Account (non-demat MF holding form)</li>
+</ul>
+
+<h3>References</h3>
+<ul>
+  <li>INDmoney public materials on multi-source unified tracking</li>
+  <li><a href="https://casparser.in/asset-classes/">CASParser unified schema</a> &mdash; exemplar for ISIN-PAN-keyed normalization</li>
+  <li><a href="https://bankstatementparser.com/">bankstatementparser</a> open-source Python library &mdash; exemplar for hybrid Tier-1&rarr;4 PDF pipeline</li>
+  <li><a href="https://github.com/madhav921/Card-Statement-Analyser">stmtforge</a> &mdash; exemplar for per-bank Indian parsers</li>
+  <li>NSE / BSE active client share data, April 2026 &mdash; for broker prioritization</li>
+</ul>
+
+<hr>
+<p class="footnote">SpendLens internal architecture spec. Maintain alongside source. Update version on every revision.</p>
+
+</main>
+</div>
+</body>
+</html>

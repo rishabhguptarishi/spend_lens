@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    @apply bg-slate-950 text-slate-100 antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(139 92 246 / 0.8);
+    outline-offset: 2px;
+  }
+
+  select option {
+    @apply bg-slate-900 text-slate-100;
+  }
+}
+
+@layer components {
+  /* Cards & surfaces */
+  .sl-card {
+    @apply rounded-xl border border-white/10 bg-slate-900/80 backdrop-blur-sm shadow-lg shadow-black/25;
+  }
+
+  .sl-card-hover {
+    @apply rounded-xl border border-white/10 bg-slate-900/80 backdrop-blur-sm shadow-lg shadow-black/25 transition hover:border-white/20 hover:bg-slate-900;
+  }
+
+  /* Forms */
+  .sl-input {
+    @apply w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2.5 text-slate-100 placeholder:text-slate-500 focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/30 outline-none;
+  }
+
+  .sl-select {
+    @apply rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/30 outline-none;
+  }
+
+  .sl-label {
+    @apply block text-sm font-medium text-slate-300 mb-1;
+  }
+
+  /* Buttons */
+  .sl-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-600/25 transition hover:from-violet-500 hover:to-fuchsia-500 disabled:opacity-50;
+  }
+
+  .sl-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white;
+  }
+
+  .sl-btn-danger {
+    @apply inline-flex items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/20;
+  }
+
+  .sl-btn-ghost {
+    @apply text-sm font-medium text-violet-400 transition hover:text-violet-300;
+  }
+
+  /* Typography */
+  .sl-page-title {
+    @apply text-2xl font-bold text-white tracking-tight;
+  }
+
+  .sl-section-title {
+    @apply text-lg font-semibold text-slate-100;
+  }
+
+  .sl-text-muted {
+    @apply text-slate-400;
+  }
+
+  /* Alerts */
+  .sl-alert-warning {
+    @apply rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-100;
+  }
+
+  .sl-alert-success {
+    @apply rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-100;
+  }
+
+  .sl-alert-info {
+    @apply rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-violet-100;
+  }
+
+  .sl-alert-error {
+    @apply rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-200;
+  }
+
+  /* Tables */
+  .sl-table-wrap {
+    @apply overflow-hidden rounded-xl border border-white/10 bg-slate-900/80 shadow-lg shadow-black/20;
+  }
+
+  .sl-table {
+    @apply min-w-full divide-y divide-white/10;
+  }
+
+  .sl-table thead {
+    @apply bg-white/5;
+  }
+
+  .sl-table th {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 sm:px-6;
+  }
+
+  .sl-table td {
+    @apply px-4 py-3 text-sm text-slate-300 sm:px-6;
+  }
+
+  .sl-table tbody tr {
+    @apply transition hover:bg-white/5;
+  }
+
+  /* Badges */
+  .sl-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .sl-badge-violet {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-violet-500/20 text-violet-200 border border-violet-500/30;
+  }
+
+  .sl-badge-emerald {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-500/20 text-emerald-200 border border-emerald-500/30;
+  }
+
+  .sl-badge-amber {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-200 border border-amber-500/30;
+  }
+
+  .sl-badge-red {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-500/20 text-red-200 border border-red-500/30;
+  }
+
+  .sl-badge-slate {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-white/10 text-slate-300 border border-white/10;
+  }
+
+  /* Empty state */
+  .sl-empty {
+    @apply rounded-xl border border-white/10 bg-slate-900/80 backdrop-blur-sm shadow-lg shadow-black/25 p-12 text-center;
+  }
+
+  /* Checkbox accent */
+  .sl-checkbox {
+    @apply rounded border-white/20 bg-slate-950/60 text-violet-500 focus:ring-violet-500/40;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
