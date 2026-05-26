@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_26_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_26_150001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -123,7 +123,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_26_100000) do
     t.jsonb "metadata", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "identity_key"
     t.index ["investment_account_id"], name: "index_investment_holdings_on_investment_account_id"
+    t.index ["user_id", "identity_key"], name: "index_investment_holdings_on_user_identity_key", unique: true, where: "(identity_key IS NOT NULL)"
     t.index ["user_id"], name: "index_investment_holdings_on_user_id"
   end
 
@@ -172,10 +174,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_26_100000) do
     t.string "asset_class"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "external_id"
+    t.integer "source_priority"
+    t.jsonb "confirmed_by", default: []
+    t.bigint "superseded_by_id"
     t.index ["investment_account_id"], name: "index_investment_transactions_on_investment_account_id"
     t.index ["investment_holding_id"], name: "index_investment_transactions_on_investment_holding_id"
+    t.index ["superseded_by_id"], name: "index_investment_transactions_on_superseded_by_id"
     t.index ["transaction_id"], name: "index_investment_transactions_on_transaction_id"
     t.index ["user_id", "date"], name: "index_investment_transactions_on_user_id_and_date"
+    t.index ["user_id", "external_id"], name: "index_investment_transactions_on_user_external_id", unique: true, where: "(external_id IS NOT NULL)"
     t.index ["user_id", "financial_year_start"], name: "index_inv_txns_on_user_fy"
     t.index ["user_id"], name: "index_investment_transactions_on_user_id"
   end
@@ -293,6 +301,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_26_100000) do
   add_foreign_key "investment_suggestions", "users"
   add_foreign_key "investment_transactions", "investment_accounts"
   add_foreign_key "investment_transactions", "investment_holdings"
+  add_foreign_key "investment_transactions", "investment_transactions", column: "superseded_by_id", on_delete: :nullify
   add_foreign_key "investment_transactions", "transactions"
   add_foreign_key "investment_transactions", "users"
   add_foreign_key "itr_tax_documents", "users"

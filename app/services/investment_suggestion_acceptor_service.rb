@@ -11,6 +11,11 @@ class InvestmentSuggestionAcceptorService
     account = find_or_create_account
     holding = find_or_create_holding(account, tx)
 
+    external_id = Investments::ExternalIdComputer.call(
+      source: 'bank_detect',
+      transaction_id: tx.id,
+    )
+
     inv_tx = @user.investment_transactions.create!(
       investment_account: account,
       investment_holding: holding,
@@ -21,7 +26,8 @@ class InvestmentSuggestionAcceptorService
       description: tx.description,
       source: 'bank_detect',
       asset_class: @suggestion.suggested_asset_class,
-      financial_year_start: FinancialYear.start_year_for(tx.date)
+      financial_year_start: FinancialYear.start_year_for(tx.date),
+      external_id: external_id,
     )
 
     update_holding_from_transaction(holding, inv_tx)
@@ -56,6 +62,24 @@ class InvestmentSuggestionAcceptorService
     label = tx.description.to_s.strip[0..100].presence || 'Holding'
     folio = extract_folio(tx.description)
     asset_class = @suggestion.suggested_asset_class
+
+    # Identity-key match wins when we can compute one (e.g. PPF/FD with
+    # a bank-name + account-no from the description). Falls through to
+    # the legacy folio-first then name-first lookup so we don't break
+    # any historical match path.
+    identity_key = Investments::IdentityKeyComputer.from_attrs(
+      asset_class: asset_class,
+      folio: folio,
+      bank_name: account.provider,
+      provider: account.provider,
+      account_no: folio,
+      deposit_no: folio,
+    )
+
+    if identity_key.present?
+      existing = @user.investment_holdings.find_by(identity_key: identity_key)
+      return existing if existing
+    end
 
     # Folio-first match wins: lets accepted suggestions attach to a
     # canonical holding StatementParsing::PortfolioExtractor created from

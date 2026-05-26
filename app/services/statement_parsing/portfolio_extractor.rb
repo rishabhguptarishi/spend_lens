@@ -118,7 +118,7 @@ module StatementParsing
         holding.update!(
           investment_account: account,
           name: "ICICI PPF #{folio}",
-          metadata: merge_metadata(holding.metadata, last_seen_balance: balance, source: 'icici_statement'),
+          metadata: merge_metadata(holding.metadata, last_seen_balance: balance, source: 'icici_statement', bank_name: 'ICICI Bank', account_no: folio),
         )
         { created: 0, updated: 1 }
       else
@@ -128,7 +128,7 @@ module StatementParsing
           name: "ICICI PPF #{folio}",
           folio: folio,
           invested_amount: balance,
-          metadata: { last_seen_balance: balance, source: 'icici_statement' },
+          metadata: { last_seen_balance: balance, source: 'icici_statement', bank_name: 'ICICI Bank', account_no: folio },
         )
         { created: 1, updated: 0 }
       end
@@ -176,6 +176,8 @@ module StatementParsing
           invested_amount: dep_amt,
           metadata: {
             source: 'icici_statement',
+            bank_name: 'ICICI Bank',
+            deposit_no: deposit_no,
             interest_rate: roi,
             maturity_amount: maturity_amt,
             maturity_date: maturity_date_str,
@@ -192,6 +194,16 @@ module StatementParsing
           created += 1
         end
 
+        external_id = Investments::ExternalIdComputer.call(
+          source: 'bank_statement',
+          provider: 'ICICI Bank',
+          folio: deposit_no,
+          date: open_date,
+          kind: 'open',
+        )
+
+        next if external_id.present? &&
+                @user.investment_transactions.exists?(external_id: external_id)
         next unless @user.investment_transactions.where(
           investment_holding_id: holding.id,
           source: 'bank_statement',
@@ -209,6 +221,7 @@ module StatementParsing
           source: 'bank_statement',
           asset_class: asset_class,
           financial_year_start: FinancialYear.start_year_for(open_date),
+          external_id: external_id,
         )
         txs_created += 1
       end

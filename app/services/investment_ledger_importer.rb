@@ -22,7 +22,28 @@ class InvestmentLedgerImporter
 
         next if amount <= 0
 
-        if skip_duplicates && duplicate?(
+        external_id = Investments::ExternalIdComputer.call(
+          source: source,
+          provider: account.provider.presence || account.name,
+          folio: h['folio'],
+          isin: h['isin'].presence || h['symbol'],
+          symbol: h['symbol'],
+          date: date,
+          units: h['units'],
+          amount: amount,
+          kind: kind,
+          order_id: h['order_id'],
+          trade_id: h['trade_id'],
+          document_id: h['document_id'],
+          row_index: h['row_index'],
+          transaction_id: h['transaction_id'],
+        )
+
+        if external_id.present? && @user.investment_transactions.exists?(external_id: external_id)
+          next
+        end
+
+        if skip_duplicates && external_id.blank? && duplicate?(
           account: account,
           date: date,
           kind: kind,
@@ -44,7 +65,8 @@ class InvestmentLedgerImporter
           description: description,
           asset_class: h['asset_class'].presence || 'other',
           source: source,
-          financial_year_start: fy
+          financial_year_start: fy,
+          external_id: external_id,
         )
         imported += 1
       end
@@ -69,12 +91,34 @@ class InvestmentLedgerImporter
   def find_or_create_holding(account, raw, description)
     label = description.to_s[0..100]
     asset = raw['asset_class'].presence || 'other'
+
+    # Prefer ISIN/identity-key-based lookup when we have enough metadata
+    # so two parsers seeing the same security (e.g. CDSL CAS and a
+    # broker CSV both reporting INE002A01018) collapse onto a single
+    # InvestmentHolding rather than forking by description.
+    identity_key = Investments::IdentityKeyComputer.from_attrs(
+      asset_class: asset,
+      isin: raw['isin'].presence || raw['symbol'],
+      symbol: raw['symbol'],
+      folio: raw['folio'],
+      provider: account.provider.presence || account.name,
+      amc: raw['amc'] || account.provider,
+    )
+
+    if identity_key.present?
+      existing = @user.investment_holdings.find_by(identity_key: identity_key)
+      return existing if existing
+    end
+
     @user.investment_holdings.find_or_create_by!(
       investment_account: account,
       name: label,
       asset_class: asset
     ) do |h|
       h.symbol = raw['symbol']
+      h.folio  = raw['folio']
+      h.identity_key = identity_key
+      h.metadata = (h.metadata || {}).merge(amc: raw['amc']).compact if raw['amc'].present?
     end
   end
 end
