@@ -29,6 +29,12 @@ class InvestmentHolding < ApplicationRecord
   # any backfilled key for legacy rows.
   before_validation :assign_identity_key, on: :create
 
+  # Phase 6 §G4: avg_cost was a long-dormant column. Wire it up to
+  # auto-derive from invested_amount / units on every save so the AI
+  # snapshot, controllers, and any future UI can rely on it without
+  # nil-checks. Falls back to 0 for unit-less instruments (PPF, FDs).
+  before_save :assign_avg_cost
+
   scope :with_identity_key, -> { where.not(identity_key: nil) }
 
   # Re-derive units / invested_amount from the holding's own investment
@@ -64,5 +70,14 @@ class InvestmentHolding < ApplicationRecord
     return if identity_key.present?
 
     self.identity_key = Investments::IdentityKeyComputer.call(self)
+  end
+
+  # avg_cost = invested_amount / units when units > 0; else 0.
+  # Computed in Ruby (not via a DB-side expression) because callers may
+  # set invested_amount/units in the same save, and we want the
+  # post-write value, not a stale-read.
+  def assign_avg_cost
+    u = units.to_f
+    self.avg_cost = u.positive? ? (invested_amount.to_f / u).round(4) : 0.0
   end
 end

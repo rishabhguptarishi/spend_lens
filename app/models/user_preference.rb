@@ -22,6 +22,11 @@ class UserPreference
     'reconciliation_tolerance_pct' => 10,
     'default_category_id' => nil,
     'dashboard_widgets' => nil,
+    # Phase 6 §G13: how far back InvestmentDetectionService scans bank
+    # narrations when looking for investment-like transactions. Default
+    # 24 months matches the previous hardcoded 2.years.ago; clamped to
+    # 1..120 in #investment_detect_lookback_months.
+    'investment_detect_lookback_months' => 24,
   }.freeze
 
   PREFERRED_TAX_REGIMES = %w[auto old new].freeze
@@ -148,6 +153,15 @@ class UserPreference
     pct = get('reconciliation_tolerance_pct').to_f
     pct = 10.0 if pct <= 0 || pct > 50
     pct
+  end
+
+  # Phase 6 §G13. Clamped to 1..120 so a user can't accidentally
+  # configure 0 (scan nothing) or 999 (scan their entire history,
+  # melting the bank-detect query on a heavy user).
+  def investment_detect_lookback_months
+    months = get('investment_detect_lookback_months').to_i
+    months = 24 if months < 1 || months > 120
+    months
   end
 
   def preferred_tax_regime

@@ -245,11 +245,28 @@ class InvestmentDetectionService
 
   private
 
+  # Phase 6:
+  # §G13 — cutoff now reads UserPreference#investment_detect_lookback_months
+  #        (default 24, clamped 1..120) instead of the hardcoded
+  #        2.years.ago.
+  # §G14 — uses the denormalized user_id FK on transactions, eliminating
+  #        the 3-table join via bank_accounts. Fall through to the legacy
+  #        join chain ONLY for legacy rows that haven't been backfilled
+  #        yet (user_id IS NULL).
   def bank_transactions
-    Transaction
+    cutoff = @user.user_preference.investment_detect_lookback_months.months.ago
+    direct_match = Transaction.where(user_id: @user.id).where('transactions.date >= ?', cutoff)
+
+    # During the soft-rollout window (user_id is still nullable), some
+    # legacy transaction rows may not have user_id stamped. Union with
+    # the legacy join chain so detection still works for them.
+    legacy = Transaction
+      .where(user_id: nil)
       .joins(statement: :bank_account)
       .where(bank_accounts: { user_id: @user.id })
-      .where('transactions.date >= ?', 2.years.ago)
+      .where('transactions.date >= ?', cutoff)
+
+    Transaction.from("(#{direct_match.to_sql} UNION #{legacy.to_sql}) AS transactions")
   end
 
   def match_rule(tx)

@@ -21,6 +21,7 @@ module StatementParsing
         merchant = description.to_s[0..100]
 
         @statement.transactions.create!(
+          user: @user,  # Phase 6 §G14 — explicit so no callback round-trip
           date: tx[:date],
           description: description,
           amount: amount,

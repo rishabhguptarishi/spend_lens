@@ -314,7 +314,7 @@
   <span><b>Status</b> Draft v1.1</span>
   <span><b>Date</b> 2026-05-26</span>
   <span><b>Owner</b> Rishabh</span>
-  <span><b>Scope</b> Phase 0 shipped; Phase 1 next</span>
+  <span><b>Scope</b> Phases 0&ndash;4 + 6 shipped; Phase 5 (new sources) next</span>
 </div>
 
 <div class="callout ok">
@@ -1031,14 +1031,14 @@ add_index  :investment_transactions, :superseded_by_id
   </tbody>
 </table>
 
-<h3 id="s6-p6">Phase 6 &mdash; Polish / safety</h3>
+<h3 id="s6-p6">Phase 6 &mdash; Polish / safety <span class="badge ok">shipped</span></h3>
 <ul>
-  <li>Replace <code>2.years.ago</code> bank-detect cutoff (G13) with per-user config</li>
-  <li>Add <code>user_id</code> FK on <code>transactions</code> (G14)</li>
-  <li>Add per-statement-upload locking (G16)</li>
-  <li>Wrap <code>StatementParserService</code> in a transaction (G17)</li>
-  <li>Remove or wire <code>avg_cost</code> column (G4)</li>
-  <li>Admin &ldquo;parser coverage&rdquo; metrics</li>
+  <li><span class="check">&check;</span> G13: <code>2.years.ago</code> bank-detect cutoff replaced with <code>UserPreference#investment_detect_lookback_months</code> (default 24, clamped 1..120)</li>
+  <li><span class="check">&check;</span> G14: <code>user_id</code> FK added to <code>transactions</code>. <code>before_validation</code> callback fills it from <code>statement.bank_account.user_id</code>. <code>InvestmentDetectionService</code> now reads <code>Transaction.where(user_id:)</code> (no 3-table join). Legacy null rows fall through the old join chain.</li>
+  <li><span class="check">&check;</span> G16: <code>file_sha</code> (SHA-256) computed on upload; partial unique index <code>(bank_account_id, file_sha)</code> + controller-side <code>find_by</code> short-circuit collapses the double-click race. Parse-side adds <code>statement.lock!</code> inside the persistence savepoint and re-checks status to short-circuit double-parse.</li>
+  <li><span class="check">&check;</span> G17: persistence + portfolio extraction wrapped in <code>ActiveRecord::Base.transaction(requires_new: true)</code>. Forces a SAVEPOINT even when called inside an outer transaction (rspec fixtures, future caller-wrapped paths) so a portfolio failure truly rolls back. Outer rescue switched to <code>update_columns</code> to bypass association autosave (which would otherwise re-insert rolled-back records).</li>
+  <li><span class="check">&check;</span> G4: <code>avg_cost</code> wired via <code>before_save</code> on <code>InvestmentHolding</code> (<code>invested_amount / units</code>, 0 for unit-less PPF/FD).</li>
+  <li><span class="check">&check;</span> Admin parser-coverage metrics: <code>rake parser:coverage</code> (human or <code>FORMAT=json</code>) prints per-parser statement counts, balance-verified %, AI-assist rate, and registered fingerprints.</li>
 </ul>
 
 <!-- ========================================================= -->

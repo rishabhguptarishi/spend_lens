@@ -6,6 +6,11 @@ class User < ApplicationRecord
          :timeoutable, :lockable
 
   has_many :bank_accounts, dependent: :destroy
+  # Phase 6 §G14: read-only convenience association. Actual cascade
+  # delete happens through bank_accounts → statements → transactions
+  # (set up on those models). We deliberately omit `dependent:` here so
+  # we don't issue two cascading deletes against the same rows.
+  has_many :transactions
   has_many :credit_cards, dependent: :destroy
   has_many :categories, dependent: :destroy
   has_many :category_rules, dependent: :destroy

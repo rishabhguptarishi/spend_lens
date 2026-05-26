@@ -19,8 +19,8 @@ module SpecFactories
     }.merge(overrides))
   end
 
-  def make_statement(bank_account:, month: 4, year: 2026, status: "processed")
-    bank_account.statements.create!(month: month, year: year, status: status)
+  def make_statement(bank_account:, month: 4, year: 2026, status: "processed", **overrides)
+    bank_account.statements.create!({ month: month, year: year, status: status }.merge(overrides))
   end
 
   def make_transaction(statement:, **overrides)
