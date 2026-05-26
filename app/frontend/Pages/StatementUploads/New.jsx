@@ -1,27 +1,38 @@
 import { Link, useForm, usePage } from '@inertiajs/react'
 import { useState } from 'react'
 import DashboardLayout from '../../Layouts/DashboardLayout'
+import PreferCsvHint from './PreferCsvHint'
 
 export default function StatementUploadsNew({ bank_accounts = [] }) {
   const { flash } = usePage().props
   const [drag, setDrag] = useState(false)
+  const [fileType, setFileType] = useState(null)
   const { data, setData, post, processing, errors } = useForm({
     file: null,
     replace: false,
   })
 
+  const isPdf = fileType === 'pdf'
+
   return (
     <DashboardLayout title="Upload Statement">
-      <div className="max-w-xl mx-auto">
+      <div className="max-w-2xl mx-auto">
         <h2 className="text-lg font-semibold text-slate-100 mb-2">Upload Statement</h2>
         {flash?.alert && (
           <div className="mb-4 p-4 rounded-lg sl-alert-error">
             {flash.alert}
           </div>
         )}
+        {flash?.notice && (
+          <div className="mb-4 p-4 rounded-lg sl-alert-success">
+            {flash.notice}
+          </div>
+        )}
         <p className="text-slate-400 mb-6">
           Just upload your CSV or PDF. We'll auto-detect your bank, create the account, and extract all transactions.
         </p>
+
+        <PreferCsvHint />
 
         <form
           onSubmit={(e) => {
@@ -42,7 +53,10 @@ export default function StatementUploadsNew({ bank_accounts = [] }) {
                 e.preventDefault()
                 setDrag(false)
                 const f = e.dataTransfer.files[0]
-                if (f && /\.(csv|pdf)$/i.test(f.name)) setData('file', f)
+                if (f && /\.(csv|pdf)$/i.test(f.name)) {
+                  setData('file', f)
+                  setFileType(f.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'csv')
+                }
               }}
               className={`w-full px-4 py-8 rounded-xl border-2 border-dashed text-center transition ${
                 drag ? 'bg-violet-500 border-violet-500 bg-violet-500/10' : 'border-white/10 hover:border-white/20'
@@ -51,7 +65,11 @@ export default function StatementUploadsNew({ bank_accounts = [] }) {
               <input
                 type="file"
                 accept=".csv,.pdf"
-                onChange={(e) => setData('file', e.target.files[0])}
+                onChange={(e) => {
+                  const f = e.target.files[0]
+                  setData('file', f)
+                  setFileType(f && f.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'csv')
+                }}
                 className="hidden"
                 id="file-input"
               />
@@ -64,6 +82,11 @@ export default function StatementUploadsNew({ bank_accounts = [] }) {
               </label>
             </div>
             {errors?.file && <p className="text-red-600 text-sm mt-1">{errors.file}</p>}
+            {isPdf && (
+              <p className="mt-2 text-xs text-amber-300/80">
+                ⓘ PDF uploaded — if parsing produces wrong numbers, try the CSV export instead (see "Prefer CSV" hint above).
+              </p>
+            )}
           </div>
 
           <label className="flex items-center gap-2 cursor-pointer">

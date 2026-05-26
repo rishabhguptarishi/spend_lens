@@ -32,6 +32,12 @@ class InvestmentSuggestionAcceptorService
 
     update_holding_from_transaction(holding, inv_tx)
     @suggestion.update!(status: 'accepted')
+
+    # Phase 4: refresh materialized positions so /net_worth and
+    # /investments reflect the newly accepted activity on next render
+    # without triggering a recompute on the read path.
+    Investments::PositionComputer.recompute_for(@user)
+
     inv_tx
   end
 

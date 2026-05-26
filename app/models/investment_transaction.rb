@@ -5,7 +5,23 @@ class InvestmentTransaction < ApplicationRecord
     buy sell dividend interest contribution sip transfer_in transfer_out
     maturity fee other
   ].freeze
-  SOURCES = %w[manual bank_detect broker_import mf_cas cdsl_cas bank_statement].freeze
+  # Phase 4: source list expanded to cover every key in
+  # Investments::SourcePriority::PRIORITIES so reconciliation can stamp
+  # any source it knows about without tripping the validation.
+  SOURCES = %w[
+    manual
+    bank_detect
+    bank_statement
+    broker_import
+    broker_pl
+    mf_cas
+    cams_cas
+    kfintech_cas
+    cdsl_cas
+    nsdl_cas
+    mf_cg
+    tax_doc
+  ].freeze
 
   belongs_to :user
   belongs_to :investment_account, optional: true

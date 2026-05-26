@@ -17,6 +17,7 @@ class InvestmentHolding < ApplicationRecord
   belongs_to :user
   belongs_to :investment_account
   has_many :investment_transactions, dependent: :nullify
+  has_many :investment_positions, dependent: :destroy
 
   validates :name, :asset_class, presence: true
   validates :asset_class, inclusion: { in: ASSET_CLASSES }
