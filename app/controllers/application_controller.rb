@@ -13,6 +13,10 @@ class ApplicationController < ActionController::Base
     {
       ai_provider: provider,
       ai_provider_label: AI_PROVIDER_LABELS[provider] || provider.to_s.capitalize,
+      flash: {
+        notice: flash.notice,
+        alert:  flash.alert,
+      },
     }
   end
 

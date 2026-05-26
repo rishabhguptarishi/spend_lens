@@ -141,17 +141,80 @@ class InvestmentDetectionService
       match = match_rule(tx)
       next unless match
 
+      confidence, metadata = score_match(match, tx)
+
       InvestmentSuggestion.create!(
         user: @user,
         source_transaction: tx,
         suggested_asset_class: match[:asset_class],
         suggested_kind: resolve_kind(match, tx),
         suggested_account_name: match[:account_name],
-        status: 'pending'
+        status: 'pending',
+        confidence: confidence,
+        metadata: metadata,
       )
       created += 1
     end
     created
+  end
+
+  # Phase 4 §5.7: confidence score (0.0–1.0) feeds InvestmentSuggestion's
+  # match_bucket (auto_resolved / likely_match / unknown).
+  #
+  # Tiers, highest to lowest:
+  #
+  #   0.95 — exact narration + a unique identifier in the description
+  #          (PPF account no, FD deposit no, NPS PRAN, MOB-TD ref) so
+  #          the acceptor can fold this into a known holding by folio.
+  #   0.80 — named platform/AMC (Zerodha / Canara Robeco / RBI FRSB) —
+  #          unambiguous direction (debit=invest, credit=redeem) but no
+  #          per-holding identifier in the narration.
+  #   0.60 — generic registrar / aggregator pattern (CAMS / KFin / MF
+  #          Central) — asset class is certain (MF) but the specific
+  #          fund isn't.
+  #   0.40 — generic keyword match (e.g. "SIP", "INV") — needs user
+  #          confirmation before booking.
+  def score_match(rule, tx)
+    text = "#{tx.description} #{tx.merchant}".to_s
+    metadata = {
+      rule_pattern: rule[:pattern].source,
+      matched_text: tx.description.to_s[0..200],
+    }
+
+    confidence =
+      if (folio = extract_folio_from_text(text))
+        metadata[:folio_hint] = folio
+        0.95
+      elsif rule[:asset_class].in?(%w[fd rd ppf nps bond]) || text.match?(/\b(?:zerodha|kite|groww|angel\s*one|upstox|sharekhan|fivepaisa|paytm\s*money|icici\s*direct)\b/i)
+        0.80
+      elsif text.match?(/\b(?:cams|kfintech|mf\s*central|mfcentral)\b/i)
+        0.60
+      elsif text.match?(/\b(?:sip|inv|mf)\b/i)
+        0.40
+      else
+        0.50
+      end
+
+    [confidence, metadata]
+  end
+
+  # Plucks PPF/FD/RD/NPS/MOB-TD folio fragments out of common bank
+  # narrations. Mirrors InvestmentSuggestionAcceptorService's
+  # extract_folio so a folio-captured match feeds directly into a
+  # canonical holding on accept.
+  def extract_folio_from_text(text)
+    text = text.to_s
+    return nil if text.blank?
+
+    if (m = text.match(/Trf\s+to\s+PPF\s+(\d{6,})/i));        return m[1]; end
+    if (m = text.match(/TRF\s+TO\s+FD\s+(?:no\.?\s+)?(\d{6,})/i)); return m[1]; end
+    if (m = text.match(/(?:To|TRF\s+TO)\s+RD\s+(?:Ac\s+no\s+)?(\d{6,})/i)); return m[1]; end
+    if (m = text.match(/NPS\s+(?:Tier[- ]?[I]+\s+)?(?:A\/c\s+)?(\d{6,})/i)); return m[1]; end
+    if (m = text.match(/MOB[-\s]?TD[\/\s](\d{8,})/i));        return m[1]; end
+    if (m = text.match(/MOB[-\s]?FD[\/\s](\d{8,})/i));        return m[1]; end
+    if (m = text.match(/MOB[-\s]?RD[\/\s](\d{8,})/i));        return m[1]; end
+
+    nil
   end
 
   # Picks :kind_credit when the matched bank transaction is a CREDIT

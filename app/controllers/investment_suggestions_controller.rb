@@ -16,18 +16,22 @@ class InvestmentSuggestionsController < ApplicationController
     redirect_to investments_suggestions_path, notice: 'Suggestion dismissed.'
   end
 
+  # Phase 4 §5.7: when `ids` is given the user is bulk-accepting a SUBSET
+  # (a single confidence-bucket from /investments/suggestions). When
+  # absent the old "accept everything" behavior is preserved so direct
+  # links / scripts keep working.
   def accept_all
+    scope = current_user.investment_suggestions.pending.includes(:source_transaction)
+    scope = scope.where(id: Array(params[:ids])) if params[:ids].present?
+
     count = 0
-    current_user.investment_suggestions
-                .pending
-                .includes(:source_transaction)
-                .find_each do |s|
+    scope.find_each do |s|
       InvestmentSuggestionAcceptorService.new(current_user, s).call
       count += 1
     rescue ActiveRecord::RecordInvalid
       next
     end
-    redirect_to investments_path, notice: "Accepted #{count} suggestion(s)."
+    redirect_to investments_suggestions_path, notice: "Accepted #{count} suggestion(s)."
   end
 
   private

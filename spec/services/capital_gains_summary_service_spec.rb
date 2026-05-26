@@ -65,7 +65,11 @@ RSpec.describe CapitalGainsSummaryService, type: :service do
       )
       csv = service.to_csv
       expect(csv).to include("Capital gains summary")
-      expect(csv).to include("Total sells")
+      # Phase 4: header was renamed to make clear we're showing canonical
+      # (active, non-superseded) sells, with the superseded total
+      # surfaced separately for audit.
+      expect(csv).to include("Canonical total sells (active)")
+      expect(csv).to include("Superseded total sells (audit)")
       expect(csv).to include("Est. STCG")
     end
   end

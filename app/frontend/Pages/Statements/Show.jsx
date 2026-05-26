@@ -55,6 +55,8 @@ export default function StatementsShow({ statement, transactions, categories = [
           </div>
         )}
 
+        <ParserQualityBanner statement={statement} />
+
         {transactions?.length > 0 ? (
           <div className="sl-card rounded-2xl shadow-sm border border-white/10 overflow-hidden">
             <table className="min-w-full divide-y divide-slate-200">
@@ -113,5 +115,52 @@ export default function StatementsShow({ statement, transactions, categories = [
         )}
       </div>
     </DashboardLayout>
+  )
+}
+
+// Phase 4 §5.7 row 5 — surfaces what Phase 3 stamped on the Statement:
+// which bank parser ran, its version, and whether opening + Σcredits −
+// Σdebits actually equals the closing balance. Gives users an at-a-
+// glance signal for "do I trust this parse, or do I re-upload CSV".
+function ParserQualityBanner({ statement }) {
+  if (!statement?.parser_name) return null
+
+  const quality = statement.parse_quality || {}
+  const balance = quality.balance || {}
+  const verified = balance.verified === true
+  const delta = balance.delta
+  const isGeneric = statement.parser_name === 'generic'
+
+  const tone = verified
+    ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-100'
+    : isGeneric
+      ? 'border-amber-500/30 bg-amber-500/5 text-amber-100'
+      : 'border-violet-500/30 bg-violet-500/5 text-violet-100'
+
+  return (
+    <div className={`mb-6 rounded-xl border px-4 py-3 text-sm ${tone}`}>
+      <div className="flex items-baseline justify-between gap-3 flex-wrap">
+        <div>
+          <strong className="font-medium">
+            Parsed by {statement.parser_name}{statement.parser_version ? ` v${statement.parser_version}` : ''}
+          </strong>
+          {balance.verified !== undefined && (
+            <span className="ml-2 text-xs opacity-80">
+              {verified ? '✓ Balance verified' : `✗ Balance check: Δ ${delta == null ? '?' : `₹${Math.abs(delta).toLocaleString('en-IN')}`}`}
+            </span>
+          )}
+        </div>
+        {isGeneric && (
+          <span className="text-xs opacity-80">
+            No bank-specific parser matched — used generic regex extraction. If numbers look off, try the CSV export.
+          </span>
+        )}
+        {!verified && balance.verified === false && !isGeneric && (
+          <span className="text-xs opacity-80">
+            Some rows may have been missed. Re-upload via CSV for a clean reparse.
+          </span>
+        )}
+      </div>
+    </div>
   )
 }

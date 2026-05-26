@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_05_27_110000) do
+ActiveRecord::Schema[8.0].define(version: 2026_05_27_150002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -145,6 +145,27 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_27_110000) do
     t.index ["user_id"], name: "index_investment_import_batches_on_user_id"
   end
 
+  create_table "investment_positions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "investment_holding_id", null: false
+    t.string "custodian", default: "unknown", null: false
+    t.string "asset_class", null: false
+    t.decimal "units", precision: 18, scale: 6, default: "0.0"
+    t.decimal "cost_basis", precision: 14, scale: 2, default: "0.0"
+    t.decimal "current_value", precision: 14, scale: 2
+    t.decimal "current_nav", precision: 14, scale: 4
+    t.date "as_of_date"
+    t.datetime "computed_at"
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["computed_at"], name: "index_investment_positions_on_computed_at"
+    t.index ["investment_holding_id"], name: "index_investment_positions_on_investment_holding_id"
+    t.index ["user_id", "asset_class"], name: "index_investment_positions_on_user_id_and_asset_class"
+    t.index ["user_id", "investment_holding_id", "custodian"], name: "index_investment_positions_on_user_holding_custodian", unique: true
+    t.index ["user_id"], name: "index_investment_positions_on_user_id"
+  end
+
   create_table "investment_suggestions", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.bigint "transaction_id", null: false
@@ -154,7 +175,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_27_110000) do
     t.string "status", default: "pending", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "confidence", precision: 4, scale: 3, default: "0.5", null: false
+    t.string "match_bucket", default: "unknown", null: false
+    t.jsonb "metadata", default: {}
     t.index ["transaction_id"], name: "index_investment_suggestions_on_transaction_id", unique: true
+    t.index ["user_id", "match_bucket"], name: "index_investment_suggestions_on_user_id_and_match_bucket"
     t.index ["user_id", "status"], name: "index_investment_suggestions_on_user_id_and_status"
     t.index ["user_id"], name: "index_investment_suggestions_on_user_id"
   end
@@ -208,6 +233,23 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_27_110000) do
     t.index ["user_id", "financial_year_start", "deduction_section"], name: "index_itr_docs_on_user_fy_section"
     t.index ["user_id", "financial_year_start", "document_type"], name: "index_itr_docs_on_user_fy_type"
     t.index ["user_id"], name: "index_itr_tax_documents_on_user_id"
+  end
+
+  create_table "mf_nav_caches", force: :cascade do |t|
+    t.string "scheme_code"
+    t.string "isin"
+    t.string "scheme_name"
+    t.string "amc"
+    t.decimal "nav", precision: 14, scale: 4
+    t.date "nav_date"
+    t.datetime "fetched_at"
+    t.string "source", default: "mfapi.in", null: false
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["fetched_at"], name: "index_mf_nav_caches_on_fetched_at"
+    t.index ["isin"], name: "index_mf_nav_caches_on_isin", unique: true, where: "(isin IS NOT NULL)"
+    t.index ["scheme_code"], name: "index_mf_nav_caches_on_scheme_code", unique: true, where: "(scheme_code IS NOT NULL)"
   end
 
   create_table "statements", force: :cascade do |t|
@@ -300,6 +342,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_27_110000) do
   add_foreign_key "investment_holdings", "users"
   add_foreign_key "investment_import_batches", "investment_accounts"
   add_foreign_key "investment_import_batches", "users"
+  add_foreign_key "investment_positions", "investment_holdings"
+  add_foreign_key "investment_positions", "users"
   add_foreign_key "investment_suggestions", "transactions"
   add_foreign_key "investment_suggestions", "users"
   add_foreign_key "investment_transactions", "investment_accounts"

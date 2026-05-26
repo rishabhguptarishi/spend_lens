@@ -14,6 +14,7 @@ class User < ApplicationRecord
   has_many :investment_holdings, dependent: :destroy
   has_many :investment_transactions, dependent: :destroy
   has_many :investment_suggestions, dependent: :destroy
+  has_many :investment_positions, dependent: :destroy
   has_many :itr_tax_documents, dependent: :destroy
   has_many :investment_import_batches, dependent: :destroy
   has_one :user_notification_preference, dependent: :destroy

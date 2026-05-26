@@ -22,6 +22,14 @@ class NetWorthController < ApplicationController
            )
   end
 
+  # Phase 4: manual NAV refresh button on the UI hits this. Recomputes
+  # positions (which triggers NavFetcher's force_refresh path for any
+  # stale schemes) and bounces back to /net_worth.
+  def refresh_nav
+    Investments::PositionComputer.recompute_for(current_user)
+    redirect_to net_worth_path, notice: 'Refreshed live NAVs.'
+  end
+
   private
 
   def asset_class_labels

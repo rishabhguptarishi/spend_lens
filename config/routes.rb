@@ -39,6 +39,7 @@ Rails.application.routes.draw do
     get "itr/capital_gains/export", to: "itr#capital_gains_export", as: :itr_capital_gains_export
     get "itr/tax_pack", to: "itr#tax_pack", as: :itr_tax_pack
     get "net_worth", to: "net_worth#index", as: :net_worth
+    post "net_worth/refresh_nav", to: "net_worth#refresh_nav", as: :net_worth_refresh_nav
 
     get "investments", to: "investments#index", as: :investments
     get "investments/activity", to: "investments#activity", as: :investments_activity
