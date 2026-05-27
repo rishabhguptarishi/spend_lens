@@ -388,7 +388,7 @@ GEM
       rubocop-rails (>= 2.30)
     ruby-progressbar (1.13.0)
     ruby-rc4 (0.1.5)
-    rubyzip (3.2.2)
+    rubyzip (3.3.0)
     securerandom (0.4.1)
     solid_cable (4.0.0)
       actioncable (>= 7.2)
