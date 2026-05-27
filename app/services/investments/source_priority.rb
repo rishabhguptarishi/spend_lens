@@ -20,6 +20,9 @@ module Investments
     PRIORITIES = {
       'cdsl_cas'        => 100,
       'nsdl_cas'        => 100,
+      'epf_passbook'    => 95,
+      'nps_statement'   => 95,
+      'amc_direct'      => 95,
       'mf_cas'          => 95,
       'cams_cas'        => 95,
       'kfintech_cas'    => 95,

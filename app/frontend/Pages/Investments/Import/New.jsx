@@ -7,6 +7,9 @@ const SOURCE_LABELS = {
   hdfc_sec: 'HDFC Securities CSV',
   mf_cas: 'MF CAS (PDF or text export)',
   cdsl_cas: 'CDSL CAS — demat + MF folios (unlocked PDF)',
+  epf_passbook: 'EPF UAN passbook',
+  nps_statement: 'NPS Protean statement',
+  amc_direct: 'AMC direct folio statement',
   generic_csv: 'Generic CSV (column mapper)',
 }
 
@@ -14,6 +17,9 @@ const SOURCE_HINTS = {
   cdsl_cas:
     'Upload the unlocked CDSL Consolidated Account Statement PDF. We import MF folio transactions with real amounts and a current snapshot of equity holdings, grouped per broker (each broker becomes its own account).',
   mf_cas: 'Upload the unlocked MF CAS PDF or text export. Transactions across AMCs will be imported.',
+  epf_passbook: 'Upload an EPFO member passbook PDF/text export. We import employee/employer contributions, interest, and withdrawals against the UAN.',
+  nps_statement: 'Upload an NPS Protean transaction statement PDF/text export. We import Tier I/II contributions, redemptions, and units against the PRAN.',
+  amc_direct: 'Upload an AMC folio statement PDF/text export. We import direct-plan purchase, SIP, redemption, and IDCW rows by folio.',
 }
 
 export default function InvestmentImportNew({

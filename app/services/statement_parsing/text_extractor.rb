@@ -33,7 +33,7 @@ module StatementParsing
     end
 
     def self.extract_pdf_via_pdftotext(content)
-      return '' unless system('which pdftotext > /dev/null 2>&1')
+      return '' unless system('which', 'pdftotext', out: File::NULL, err: File::NULL)
 
       tmp = Tempfile.create(['stmt', '.pdf'])
       tmp.binmode
@@ -42,7 +42,7 @@ module StatementParsing
       tmp.close
       out = Tempfile.create(['stmt', '.txt'])
       out.close
-      system("pdftotext -layout #{tmp.path} #{out.path} 2>/dev/null")
+      system('pdftotext', '-layout', tmp.path, out.path, out: File::NULL, err: File::NULL)
       File.read(out.path).force_encoding('UTF-8')
     rescue => e
       Rails.logger.warn "pdftotext failed: #{e.message}"

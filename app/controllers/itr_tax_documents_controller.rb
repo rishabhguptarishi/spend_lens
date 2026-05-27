@@ -52,7 +52,7 @@ class ItrTaxDocumentsController < ApplicationController
   end
 
   def confirm
-    if request.get?
+    if request.get? || request.head?
       return render inertia: 'Itr/DocumentConfirm',
                     props: {
                       document: document_json(@document),

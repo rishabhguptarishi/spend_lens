@@ -27,10 +27,26 @@ module StatementParsing
   module BankFingerprintRegistry
     Entry = Struct.new(:name, :ifsc_prefix, :header_patterns, :parser, :features, :sample_path, keyword_init: true) do
       def matches?(text)
-        return true if ifsc_prefix.present? && text.match?(/\b#{Regexp.escape(ifsc_prefix)}\w{4,}\b/)
+        header_matches?(text) || ifsc_matches?(text)
+      end
 
+      def header_matches?(text)
         head = text.to_s.lines.first(80).join("\n")
         Array(header_patterns).any? { |p| head.match?(p) }
+      end
+
+      def ifsc_matches?(text)
+        return false if ifsc_prefix.blank?
+
+        prefix = Regexp.escape(ifsc_prefix)
+        lines = text.to_s.lines.first(80)
+        labeled_ifsc = lines.grep(/\bIFSC\b/i).join("\n")
+        return true if labeled_ifsc.match?(/\b#{prefix}\w{4,}\b/i)
+
+        # Fallback for statements that print the account IFSC without a label:
+        # only trust the earliest header lines so beneficiary IFSCs in the
+        # transaction table don't steal the bank fingerprint.
+        lines.first(25).join("\n").match?(/\b#{prefix}\w{4,}\b/i)
       end
     end
 
@@ -51,7 +67,8 @@ module StatementParsing
       def detect(text)
         return nil if text.blank?
 
-        @entries.find { |e| e.matches?(text) }
+        @entries.find { |e| e.header_matches?(text) } ||
+          @entries.find { |e| e.ifsc_matches?(text) }
       end
 
       def lookup(name)

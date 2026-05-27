@@ -15,6 +15,9 @@ module InvestmentImports
       'mf_cas'       => MUTUAL_FUNDS_CAS_ACCOUNT_NAME,
       'cdsl_cas'     => 'CDSL CAS',
       'nsdl_cas'     => 'NSDL CAS',
+      'epf_passbook' => 'EPF Passbook',
+      'nps_statement' => 'NPS',
+      'amc_direct'   => MUTUAL_FUNDS_CAS_ACCOUNT_NAME,
       'cams_cas'     => MUTUAL_FUNDS_CAS_ACCOUNT_NAME,
       'kfintech_cas' => MUTUAL_FUNDS_CAS_ACCOUNT_NAME,
       'generic_csv'  => 'Imported portfolio',
@@ -31,6 +34,9 @@ module InvestmentImports
       'kfintech_cas' => 'mf_cas',
       'cdsl_cas'     => 'cdsl_cas',
       'nsdl_cas'     => 'cdsl_cas',
+      'epf_passbook' => 'epf_passbook',
+      'nps_statement' => 'nps_statement',
+      'amc_direct'   => 'amc_direct',
     }.freeze
 
     def initialize(user, batch)
@@ -114,13 +120,26 @@ module InvestmentImports
 
       name = default_account_name
       @user.investment_accounts.find_or_create_by!(name: name) do |a|
-        a.account_kind = @batch.source.in?(%w[mf_cas cams_cas kfintech_cas cdsl_cas nsdl_cas]) ? 'mf_platform' : 'broker'
+        a.account_kind = default_account_kind
         a.provider = name
       end
     end
 
     def default_account_name
       DEFAULT_ACCOUNT_NAMES[@batch.source] || 'Imported'
+    end
+
+    def default_account_kind
+      case @batch.source
+      when 'mf_cas', 'cams_cas', 'kfintech_cas', 'cdsl_cas', 'nsdl_cas', 'amc_direct'
+        'mf_platform'
+      when 'epf_passbook'
+        'epf'
+      when 'nps_statement'
+        'nps'
+      else
+        'broker'
+      end
     end
   end
 end

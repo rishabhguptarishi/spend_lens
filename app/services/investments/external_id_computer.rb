@@ -83,6 +83,26 @@ module Investments
         kind = a[:kind] || 'snapshot'
         "cdsl:#{identifier}:#{a[:date]}:#{units}:#{kind}"
       },
+      'epf_passbook' => ->(a) {
+        next nil if a[:folio].blank? || a[:date].blank?
+
+        amount = a[:amount].present? ? format('%.2f', a[:amount].to_f) : '0.00'
+        "epf:#{a[:folio]}:#{a[:date]}:#{a[:kind]}:#{amount}"
+      },
+      'nps_statement' => ->(a) {
+        next nil if a[:folio].blank? || a[:date].blank?
+
+        units = a[:units].present? ? format('%.4f', a[:units].to_f) : '0.0000'
+        amount = a[:amount].present? ? format('%.2f', a[:amount].to_f) : '0.00'
+        "nps:#{a[:folio]}:#{a[:date]}:#{units}:#{amount}:#{a[:kind]}"
+      },
+      'amc_direct' => ->(a) {
+        next nil if a[:folio].blank? || a[:date].blank?
+
+        amount = a[:amount].present? ? format('%.2f', a[:amount].to_f) : '0.00'
+        units = a[:units].present? ? format('%.4f', a[:units].to_f) : '0.0000'
+        "amc_direct:#{a[:folio]}:#{a[:isin].presence || a[:symbol]}:#{a[:date]}:#{units}:#{amount}:#{a[:kind]}"
+      },
       'manual' => ->(_a) { nil },
     }.freeze
 

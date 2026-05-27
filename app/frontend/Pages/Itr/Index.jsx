@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react'
-import { useMemo, useState } from 'react'
+import { useRef, useState } from 'react'
 import DashboardLayout from '../../Layouts/DashboardLayout'
 
 const FILING_STEPS = [
@@ -31,7 +31,7 @@ function DocumentSlot({ entry, year }) {
   const [showMore, setShowMore] = useState(false)
   const [payerName, setPayerName] = useState('')
   const { ai_provider_label = 'AI' } = usePage().props
-  const fileInputRef = useMemo(() => ({}), [])
+  const fileInputRef = useRef(null)
 
   const handleFile = (e) => {
     const file = e.target.files?.[0]
@@ -150,24 +150,31 @@ function DocumentSlot({ entry, year }) {
         <div className="space-y-1">{entry.instances.map(renderInstance)}</div>
 
         {showMore && (
-          <label className="flex items-center justify-between gap-3 p-3 rounded-lg border border-dashed border-white/10 hover:border-violet-500/40 cursor-pointer flex-wrap">
+          <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-dashed border-white/10 hover:border-violet-500/40 flex-wrap">
             <input
               type="text"
               value={payerName}
               onChange={(e) => setPayerName(e.target.value)}
               placeholder="Payer / source label (e.g. HDFC Bank)"
               className="flex-1 min-w-[180px] px-3 py-1.5 text-sm rounded-lg bg-slate-900/40 border border-white/10 text-slate-200"
-              onClick={(e) => e.stopPropagation()}
             />
-            <span className="text-sm text-violet-400 font-medium">{uploading ? 'Uploading…' : 'Upload file'}</span>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="text-sm text-violet-400 font-medium disabled:opacity-60"
+            >
+              {uploading ? 'Uploading…' : 'Upload file'}
+            </button>
             <input
+              ref={fileInputRef}
               type="file"
               accept={entry.accept}
               className="hidden"
               onChange={handleFile}
               disabled={uploading}
             />
-          </label>
+          </div>
         )}
       </div>
     )
@@ -175,7 +182,7 @@ function DocumentSlot({ entry, year }) {
 
   // Empty state — first upload of this type
   return (
-    <label className="flex items-center justify-between p-4 rounded-xl border border-dashed border-white/10 hover:border-violet-500/40 cursor-pointer gap-3 flex-wrap">
+    <div className="flex items-center justify-between p-4 rounded-xl border border-dashed border-white/10 hover:border-violet-500/40 gap-3 flex-wrap">
       <div className="flex-1">
         <p className="font-medium text-slate-100">{entry.label}</p>
         <p className="text-xs text-slate-400">{entry.description}</p>
@@ -188,18 +195,25 @@ function DocumentSlot({ entry, year }) {
           onChange={(e) => setPayerName(e.target.value)}
           placeholder="Payer (optional)"
           className="px-3 py-1.5 text-sm rounded-lg bg-slate-900/40 border border-white/10 text-slate-200"
-          onClick={(e) => e.stopPropagation()}
         />
       )}
-      <span className="text-sm text-violet-400 font-medium">{uploading ? 'Uploading…' : 'Upload'}</span>
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        className="text-sm text-violet-400 font-medium disabled:opacity-60"
+      >
+        {uploading ? 'Uploading…' : 'Upload'}
+      </button>
       <input
+        ref={fileInputRef}
         type="file"
         accept={entry.accept || '.pdf,.json'}
         className="hidden"
         onChange={handleFile}
         disabled={uploading}
       />
-    </label>
+    </div>
   )
 }
 

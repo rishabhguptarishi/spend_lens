@@ -19,6 +19,9 @@ class InvestmentTransaction < ApplicationRecord
     kfintech_cas
     cdsl_cas
     nsdl_cas
+    epf_passbook
+    nps_statement
+    amc_direct
     mf_cg
     tax_doc
   ].freeze

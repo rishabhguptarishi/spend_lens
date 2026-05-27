@@ -7,7 +7,7 @@ module InvestmentImports
       text = if ext == 'pdf'
                StatementParsing::TextExtractor.extract(file_content, extension: 'pdf')
              else
-               file_content.force_encoding('UTF-8')
+               file_content.to_s.dup.force_encoding('UTF-8')
              end
 
       rows = case source.to_s
@@ -22,6 +22,12 @@ module InvestmentImports
                # anchored. Falls back silently if AI is unavailable.
                parsed = CdslCasParser.parse(text, source: source, financial_year_start: financial_year_start)
                SecurityNameEnricher.call(parsed)
+             when 'epf_passbook'
+               EpfPassbookParser.parse(text, source: source, financial_year_start: financial_year_start)
+             when 'nps_statement'
+               NpsStatementParser.parse(text, source: source, financial_year_start: financial_year_start)
+             when 'amc_direct'
+               AmcDirectParser.parse(text, source: source, financial_year_start: financial_year_start)
              when 'generic_csv'
                GenericCsvParser.new(text, source: source, financial_year_start: financial_year_start, column_mapping: column_mapping).parse
              else

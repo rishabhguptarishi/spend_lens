@@ -90,7 +90,8 @@ class InvestmentLedgerImporter
 
   def find_or_create_holding(account, raw, description)
     label = description.to_s[0..100]
-    asset = raw['asset_class'].presence || 'other'
+      asset = raw['asset_class'].presence || 'other'
+    metadata = holding_metadata(raw, account)
 
     # Prefer ISIN/identity-key-based lookup when we have enough metadata
     # so two parsers seeing the same security (e.g. CDSL CAS and a
@@ -103,6 +104,8 @@ class InvestmentLedgerImporter
       folio: raw['folio'],
       provider: account.provider.presence || account.name,
       amc: raw['amc'] || account.provider,
+      uan: metadata[:uan],
+      pran: metadata[:pran],
     )
 
     if identity_key.present?
@@ -118,7 +121,18 @@ class InvestmentLedgerImporter
       h.symbol = raw['symbol']
       h.folio  = raw['folio']
       h.identity_key = identity_key
-      h.metadata = (h.metadata || {}).merge(amc: raw['amc']).compact if raw['amc'].present?
+      h.metadata = (h.metadata || {}).merge(metadata).compact if metadata.present?
     end
+  end
+
+  def holding_metadata(raw, account)
+    {
+      amc: raw['amc'],
+      isin: raw['isin'],
+      uan: raw['uan'],
+      pran: raw['pran'],
+      tier: raw['tier'],
+      provider: raw['provider'] || account.provider,
+    }.compact
   end
 end

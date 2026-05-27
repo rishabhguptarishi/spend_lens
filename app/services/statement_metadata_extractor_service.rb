@@ -231,20 +231,15 @@ class StatementMetadataExtractorService
     }
   end
 
-  # Canonical Indian-bank fingerprints. We scan the FULL document because
-  # SBI prints "State Bank of India" only on page 2 of the relationship
-  # summary, well past the header lines.
-  BANK_FINGERPRINTS = [
-    [/\bState\s+Bank\s+of\s+India\b/i,           'State Bank of India'],
-    [/\bSBIN\d{7}\b/,                            'State Bank of India'], # IFSC prefix
+  # Canonical Indian-bank fingerprints. Header names win first; labeled IFSCs
+  # win second. Full-document name scanning is only a fallback so payee bank
+  # names in transaction descriptions do not relabel the uploaded statement.
+  BANK_NAME_FINGERPRINTS = [
     [/\bHDFC\s+Bank\b/i,                         'HDFC Bank'],
-    [/\bHDFC\d{7}\b/,                            'HDFC Bank'],
     [/\bICICI\s+Bank\b/i,                        'ICICI Bank'],
-    [/\bICIC\d{7}\b/,                            'ICICI Bank'],
     [/\bAxis\s+Bank\b/i,                         'Axis Bank'],
-    [/\bUTIB\d{7}\b/,                            'Axis Bank'],
+    [/\bState\s+Bank\s+of\s+India\b/i,           'State Bank of India'],
     [/\bKotak\s+Mahindra\b/i,                    'Kotak Mahindra Bank'],
-    [/\bKKBK\d{7}\b/,                            'Kotak Mahindra Bank'],
     [/\bIndusInd\s+Bank\b/i,                     'IndusInd Bank'],
     [/\bYES\s+Bank\b/i,                          'YES Bank'],
     [/\bIDFC\s+(?:First\s+)?Bank\b/i,            'IDFC First Bank'],
@@ -257,10 +252,30 @@ class StatementMetadataExtractorService
     [/\bAmerican\s+Express\b/i,                  'American Express'],
   ].freeze
 
+  IFSC_FINGERPRINTS = [
+    [/\bHDFC\d{7}\b/i, 'HDFC Bank'],
+    [/\bICIC\d{7}\b/i, 'ICICI Bank'],
+    [/\bUTIB\d{7}\b/i, 'Axis Bank'],
+    [/\bSBIN\d{7}\b/i, 'State Bank of India'],
+    [/\bKKBK\d{7}\b/i, 'Kotak Mahindra Bank'],
+  ].freeze
+
+  BANK_FINGERPRINTS = (BANK_NAME_FINGERPRINTS + IFSC_FINGERPRINTS).freeze
+
   def extract_bank_regex
-    BANK_FINGERPRINTS.each do |re, name|
-      return name if @content.match?(re)
-    end
+    header = @content.lines.first(80).join
+    header_bank = first_fingerprint_match(header, BANK_NAME_FINGERPRINTS)
+    return header_bank if header_bank
+
+    labeled_ifsc = @content.lines.first(120).grep(/\bIFSC\b/i).join("\n")
+    labeled_ifsc_bank = first_fingerprint_match(labeled_ifsc, IFSC_FINGERPRINTS)
+    return labeled_ifsc_bank if labeled_ifsc_bank
+
+    document_bank = first_fingerprint_match(@content, BANK_NAME_FINGERPRINTS)
+    return document_bank if document_bank
+
+    header_ifsc_bank = first_fingerprint_match(header, IFSC_FINGERPRINTS)
+    return header_ifsc_bank if header_ifsc_bank
 
     header = @content.lines.first(10).join
 
@@ -277,6 +292,13 @@ class StatementMetadataExtractorService
     return clean_bank_name(line.strip) if line
 
     nil
+  end
+
+  def first_fingerprint_match(text, fingerprints)
+    fingerprints.filter_map do |re, name|
+      match = text.match(re)
+      [match.begin(0), name] if match
+    end.min_by(&:first)&.last
   end
 
   def clean_bank_name(str)

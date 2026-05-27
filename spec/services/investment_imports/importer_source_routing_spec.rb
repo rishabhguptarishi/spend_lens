@@ -97,7 +97,7 @@ RSpec.describe InvestmentImports::Importer do
   end
 
   describe 'batch source validation (G7)' do
-    %w[nsdl_cas cams_cas kfintech_cas bank_statement].each do |src|
+    %w[nsdl_cas epf_passbook nps_statement amc_direct cams_cas kfintech_cas bank_statement].each do |src|
       it "accepts #{src} as a valid batch source" do
         batch = user.investment_import_batches.new(
           source: src, status: 'preview', financial_year_start: 2026,
@@ -105,6 +105,95 @@ RSpec.describe InvestmentImports::Importer do
         )
         expect(batch).to be_valid
       end
+    end
+  end
+
+  describe 'Phase 5 retirement source imports' do
+    it 'stamps EPF rows with source/account kind and a UAN identity key' do
+      batch = user.investment_import_batches.create!(
+        source: 'epf_passbook',
+        status: 'preview',
+        financial_year_start: 2026,
+        preview_rows: [
+          {
+            date: '2026-04-01',
+            kind: 'contribution',
+            amount: 1800.0,
+            description: 'EPF employee contribution',
+            asset_class: 'epf',
+            folio: '100200300400',
+            uan: '100200300400',
+            selected: true,
+          },
+        ],
+        metadata: { 'filename' => 'epf.pdf' }
+      )
+
+      described_class.new(user, batch).call
+
+      tx = user.investment_transactions.last
+      expect(tx.source).to eq('epf_passbook')
+      expect(tx.investment_account.account_kind).to eq('epf')
+      expect(tx.investment_holding.identity_key).to eq('EPF:100200300400')
+    end
+
+    it 'stamps NPS rows with source/account kind and a PRAN identity key' do
+      batch = user.investment_import_batches.create!(
+        source: 'nps_statement',
+        status: 'preview',
+        financial_year_start: 2026,
+        preview_rows: [
+          {
+            date: '2026-04-10',
+            kind: 'contribution',
+            amount: 50_000.0,
+            description: 'NPS Tier I contribution',
+            asset_class: 'nps',
+            folio: '123456789012',
+            pran: '123456789012',
+            tier: 'Tier I',
+            units: 123.456,
+            selected: true,
+          },
+        ],
+        metadata: { 'filename' => 'nps.pdf' }
+      )
+
+      described_class.new(user, batch).call
+
+      tx = user.investment_transactions.last
+      expect(tx.source).to eq('nps_statement')
+      expect(tx.investment_account.account_kind).to eq('nps')
+      expect(tx.investment_holding.identity_key).to eq('NPS:123456789012')
+    end
+
+    it 'stamps AMC direct rows as mutual-fund source and folio identity key' do
+      batch = user.investment_import_batches.create!(
+        source: 'amc_direct',
+        status: 'preview',
+        financial_year_start: 2026,
+        preview_rows: [
+          {
+            date: '2026-04-05',
+            kind: 'buy',
+            amount: 5000.0,
+            description: 'HDFC Flexi Cap Fund',
+            asset_class: 'mutual_fund',
+            folio: '123456/78',
+            amc: 'HDFC Mutual Fund',
+            units: 100.25,
+            selected: true,
+          },
+        ],
+        metadata: { 'filename' => 'amc.pdf' }
+      )
+
+      described_class.new(user, batch).call
+
+      tx = user.investment_transactions.last
+      expect(tx.source).to eq('amc_direct')
+      expect(tx.investment_account.account_kind).to eq('mf_platform')
+      expect(tx.investment_holding.identity_key).to eq('FOLIO:HDFC Mutual Fund:123456/78')
     end
   end
 end

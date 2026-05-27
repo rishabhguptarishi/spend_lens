@@ -41,6 +41,34 @@ RSpec.describe StatementParsing::BankFingerprintRegistry do
       expect(entry&.name).to eq('HDFC Bank')
     end
 
+    it 'prefers an ICICI header over HDFC beneficiary IFSCs in transaction rows' do
+      text = <<~TEXT
+        ICICI Bank Limited
+        Statement of Account
+        Account Number: 1234567890
+        IFSC: ICIC0006065
+
+        Date Narration Withdrawal Deposit Balance
+        10/04/2026 NEFT TO HDFC0001234 BENEFICIARY 100.00 900.00
+      TEXT
+
+      expect(described_class.detect(text)&.name).to eq('ICICI Bank')
+    end
+
+    it 'prefers an HDFC header over SBI beneficiary IFSCs in transaction rows' do
+      text = <<~TEXT
+        HDFC BANK LIMITED
+        Account Statement
+        A/C No: 50100123456789
+        IFSC: HDFC0001234
+
+        Date Narration Withdrawal Deposit Balance
+        12/04/2026 IMPS TO SBIN0011311 BENEFICIARY 500.00 5000.00
+      TEXT
+
+      expect(described_class.detect(text)&.name).to eq('HDFC Bank')
+    end
+
     it 'returns nil when nothing matches (Tier-2 bank not yet fingerprinted)' do
       entry = described_class.detect("Welcome to Kotak Mahindra Bank account holder")
       expect(entry).to be_nil

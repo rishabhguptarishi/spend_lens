@@ -12,6 +12,9 @@ class InvestmentImportBatch < ApplicationRecord
     mf_cas
     cdsl_cas
     nsdl_cas
+    epf_passbook
+    nps_statement
+    amc_direct
     cams_cas
     kfintech_cas
     bank_statement

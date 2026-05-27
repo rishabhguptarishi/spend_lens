@@ -202,6 +202,38 @@ RSpec.describe StatementMetadataExtractorService, type: :service do
         expect(result[:bank_name]).to eq("Axis Bank")
         expect(result[:last_four]).to eq("8901")
       end
+
+      it "keeps HDFC as the statement bank when SBI appears later as a payee bank" do
+        content = <<~TXT
+          HDFC Bank
+          Account Statement
+          A/c No : 50100123456789
+          IFSC Code : HDFC0001234
+
+          Date Narration Withdrawal Deposit Balance
+          12/04/2026 IMPS TO State Bank of India SBIN0011311 500.00 4,500.00
+        TXT
+
+        result = described_class.new(content).call
+        expect(result[:bank_name]).to eq("HDFC Bank")
+        expect(result[:last_four]).to eq("6789")
+      end
+
+      it "keeps ICICI as the statement bank when HDFC appears in a transaction narration" do
+        content = <<~TXT
+          ICICI Bank
+          Statement of Account
+          Account Number: 123456789012
+          IFSC: ICIC0006065
+
+          Date Narration Withdrawal Deposit Balance
+          10/04/2026 NEFT TO HDFC Bank HDFC0001234 100.00 900.00
+        TXT
+
+        result = described_class.new(content).call
+        expect(result[:bank_name]).to eq("ICICI Bank")
+        expect(result[:last_four]).to eq("9012")
+      end
     end
 
     context "when AI returns a different but valid last_four" do

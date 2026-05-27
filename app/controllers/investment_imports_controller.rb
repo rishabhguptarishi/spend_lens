@@ -24,7 +24,7 @@ class InvestmentImportsController < ApplicationController
       return redirect_to new_investment_import_path, alert: 'Please select a file.'
     end
 
-    mapping = params[:column_mapping].present? ? params[:column_mapping].permit!.to_h : {}
+    mapping = params[:column_mapping].present? ? column_mapping_params.to_h : {}
     content = file.read
     async = large_import?(file, content)
 
@@ -144,6 +144,10 @@ class InvestmentImportsController < ApplicationController
     return nil if id.blank?
 
     current_user.investment_accounts.find(id).id
+  end
+
+  def column_mapping_params
+    params.require(:column_mapping).permit(:date, :description, :amount, :kind, :asset_class, :default_kind)
   end
 
   def batch_json(batch)
