@@ -87,7 +87,7 @@ GEM
     bcrypt_pbkdf (1.1.2-x86_64-darwin)
     bigdecimal (3.3.1)
     bindex (0.8.1)
-    bootsnap (1.23.0)
+    bootsnap (1.24.6)
       msgpack (~> 1.2)
     brakeman (8.0.2)
       racc
@@ -199,7 +199,7 @@ GEM
     minitest (6.0.6)
       drb (~> 2.0)
       prism (~> 1.5)
-    msgpack (1.8.0)
+    msgpack (1.8.1)
     mutex_m (0.3.0)
     net-http (0.9.1)
       uri (>= 0.11.1)
